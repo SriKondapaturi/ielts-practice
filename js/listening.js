@@ -17,8 +17,8 @@
     },
     classify(v) {
       const n = (v.name + " " + (v.voiceURI || "")).toLowerCase();
-      const f = /female|woman|zira|hazel|susan|samantha|karen|moira|tessa|fiona|victoria|kate|serena|libby|sonia|maisie|emma|jenny|aria|ava|allison|catherine|amelia|olivia|martha|hollie|natasha|clara|zoe|google uk english female|google us english/.test(n);
-      const m = /male|man\b|david|george|daniel|alex|fred|oliver|james|thomas|ryan|guy|brian|christopher|eric|andrew|arthur|alfie|elliot|ethan|noah|oliver|william|google uk english male/.test(n);
+      const f = /female|woman|zira|hazel|susan|samantha|karen|moira|tessa|fiona|victoria|kate|serena|libby|sonia|maisie|emma|jenny|aria|ava|allison|catherine|amelia|olivia|martha|hollie|natasha|clara|zoe|heera|neerja|priya|swara|molly|isla|google uk english female|google us english/.test(n);
+      const m = /\bmale\b|\bman\b|david|george|daniel|alex|fred|oliver|james|thomas|ryan|guy|brian|christopher|eric|andrew|arthur|alfie|elliot|ethan|noah|william|ravi|prabhat|mark|liam|connor|google uk english male/.test(n);
       return f && !m ? "female" : m ? "male" : "unknown";
     },
     // Accent mix of the real recordings: mostly British, then Australian / New Zealand, North American, Irish, occasionally others.

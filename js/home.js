@@ -14,7 +14,7 @@
     const st = IELTS.syncState;
     if (st === "pending") return "Checking sign-in…";
     if (st === "synced") return `Progress saved to your account${IELTS.auth.user() ? " (" + esc(IELTS.auth.user().email) + ")" : ""}: it follows you to any device where you open this page signed in.`;
-    if (st === "signed-out") return IELTS.auth.enabled ? "Not signed in: progress is saved in this browser only. Use Sign in (top right) to keep it across devices." : "Not signed in: progress is saved in this browser only. Sign in to claude.ai to keep it across devices.";
+    if (st === "signed-out") return IELTS.auth.enabled ? "Not signed in: progress is saved in this browser only. Sign in from the sidebar to keep it across devices." : "Not signed in: progress is saved in this browser only. Sign in to claude.ai to keep it across devices.";
     if (st === "error") return "Could not reach account storage; progress is saved in this browser for now and will sync when it reconnects.";
     return "Progress is saved in this browser.";
   }
@@ -22,28 +22,44 @@
   const SKIP_KEY = "ielts_skip_signin";
   IELTS.state.gate = () => IELTS.auth.enabled && !IELTS.userId && IELTS.syncState !== "local" && !sessionStorage.getItem(SKIP_KEY) && IELTS.syncState !== "pending";
   route("signin", (app) => {
-    app.appendChild(topbar({ title: "Sign in" }));
-    const wrap = el(`<div class="instr"><div class="box">
-      <h1>IELTS Academic practice</h1>
-      <p class="muted">Sign in so your scores and marked essays are saved to your account and follow you between your laptop and phone.</p>
-      <div id="status" class="muted" style="min-height:20px"></div>
-      <label style="display:block;margin:10px 0 6px">Email<br><input id="em" type="email" autocomplete="email" style="width:100%;padding:8px;font-size:15px"></label>
-      <label style="display:block;margin:6px 0 10px">Password<br><input id="pw" type="password" autocomplete="current-password" style="width:100%;padding:8px;font-size:15px"></label>
-      <label style="display:block;margin:6px 0 10px">Your name <span class="muted">(for a new account; shown in the top bar, can be changed later in Settings)</span><br><input id="nm" type="text" autocomplete="name" placeholder="e.g. Neha Priyanka" style="width:100%;padding:8px;font-size:15px"></label>
-      <div class="row"><button class="btn primary" id="in">Sign in</button><button class="btn" id="up">Create account</button><button class="btn" id="link">Email me a sign-in link instead</button></div>
-      <p class="muted" style="margin-top:16px"><button class="btn small" id="skip">Continue without an account</button> &nbsp; progress then stays in this browser only.</p>
-    </div></div>`);
-    const st = $("#status", wrap); const say = (m, bad) => { st.textContent = m; st.style.color = bad ? "var(--bad)" : "var(--ok)"; };
+    app.className = "auth";
+    let mode = "in";
+    const wrap = el(`<div style="display:contents"><div class="panel">
+        <div class="brand">${Shell.MARK}<span class="word">Bandline</span></div>
+        <h1>Every band, one line closer.</h1>
+        <p>Timed Listening, Reading, Writing and Speaking tests built to the Cambridge standard, marked on the official criteria, with every lost mark logged so the next attempt is better than the last.</p>
+        <svg class="art" viewBox="0 0 520 150" aria-hidden="true"><g stroke="rgba(255,255,255,.18)" stroke-width="1">${[0,1,2,3,4].map(i=>`<line x1="${20+i*120}" y1="20" x2="${20+i*120}" y2="120"/>`).join("")}</g><g fill="rgba(255,255,255,.5)" font-family="Fraunces, Georgia, serif" font-size="14">${[5,6,7,8,9].map((b,i)=>`<text x="${20+i*120}" y="142" text-anchor="middle">${b}</text>`).join("")}</g><g stroke="rgba(255,255,255,.25)" stroke-width="1">${[40,66,92,118].map(y=>`<line x1="20" y1="${y}" x2="500" y2="${y}"/>`).join("")}</g><g stroke="#17A294" stroke-width="6" stroke-linecap="round">${[[40,260,330],[66,260,345],[92,200,290],[118,200,300]].map(([y,a,b])=>`<line x1="${a}" y1="${y}" x2="${b}" y2="${y}"/>`).join("")}</g><g fill="#fff">${[[40,330],[66,345],[92,290],[118,300]].map(([y,x])=>`<circle cx="${x}" cy="${y}" r="6"/>`).join("")}</g><g stroke="#E09F3E" stroke-width="3" stroke-linecap="round">${[[40,380],[66,380],[92,320],[118,320]].map(([y,x])=>`<line x1="${x}" y1="${y-8}" x2="${x}" y2="${y+8}"/>`).join("")}</g><g fill="rgba(255,255,255,.7)" font-family="Instrument Sans, Arial, sans-serif" font-size="12">${[["Listening",40],["Reading",66],["Writing",92],["Speaking",118]].map(([t,y])=>`<text x="0" y="${y+4}" dx="0">${t}</text>`).join("")}</g></svg>
+        <div class="foot">Original tests · official timings · progress that follows you to every device</div>
+      </div>
+      <div class="form"><div class="box">
+        <div class="seg"><button class="on" data-m="in">Sign in</button><button data-m="up">Create account</button></div>
+        <h2 id="ttl">Welcome back</h2><p class="sub" id="sub">Your scores and marked work are waiting.</p>
+        <div id="nmrow" class="hidden"><label for="nm">Your name</label><input id="nm" type="text" autocomplete="name" placeholder="As it should appear on the test screens"></div>
+        <label for="em">Email</label><input id="em" type="email" autocomplete="email" placeholder="you@example.com">
+        <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+        <div class="status" id="status"></div>
+        <button class="btn" id="go">Sign in</button>
+        <button class="btn quiet" id="link">Email me a sign-in link instead</button>
+        <div class="guest"><span>Just looking?</span><button id="skip">Continue without an account</button></div>
+      </div></div></div>`);
+    const st = $("#status", wrap); const say = (m, bad) => { st.textContent = m; st.className = "status " + (bad ? "bad" : "ok"); };
     const creds = () => [$("#em", wrap).value.trim(), $("#pw", wrap).value];
-    $("#in", wrap).onclick = async () => { const [e, p] = creds(); if (!e || !p) return say("Enter your email and password.", true); try { say("Signing in…"); await IELTS.auth.signInWithPassword(e, p); } catch (err) { say(err.message || "Sign-in failed", true); } };
-    $("#up", wrap).onclick = async () => { const [e, p] = creds(); const nm = $("#nm", wrap).value.trim(); if (!e || p.length < 8) return say("Enter your email and a password of at least 8 characters.", true); if (!nm) return say("Enter your name so the test screens can show it.", true); try { say("Creating account…"); const r = await IELTS.auth.signUp(e, p, nm); settings.name = nm; localStorage.setItem("ielts_pending_name", nm); saveSettings(); say(r && r.session ? "Account created. Signing you in…" : "Account created. If a confirmation email arrives, open the link, then sign in with your email and password."); } catch (err) { say(err.message || "Could not create the account", true); } };
+    const setMode = m => { mode = m; $$(".seg button", wrap).forEach(b => b.classList.toggle("on", b.dataset.m === m)); $("#nmrow", wrap).classList.toggle("hidden", m !== "up"); $("#ttl", wrap).textContent = m === "up" ? "Create your account" : "Welcome back"; $("#sub", wrap).textContent = m === "up" ? "Your progress will follow you to any device." : "Your scores and marked work are waiting."; $("#go", wrap).textContent = m === "up" ? "Create account" : "Sign in"; $("#pw", wrap).autocomplete = m === "up" ? "new-password" : "current-password"; say(""); };
+    $$(".seg button", wrap).forEach(b => b.onclick = () => setMode(b.dataset.m));
+    $("#go", wrap).onclick = async () => {
+      const [e, p] = creds();
+      if (mode === "in") { if (!e || !p) return say("Enter your email and password.", true); try { say("Signing in…"); await IELTS.auth.signInWithPassword(e, p); } catch (err) { say(err.message || "Sign-in failed", true); } return; }
+      const nm = $("#nm", wrap).value.trim();
+      if (!nm) return say("Enter your name so the test screens can show it.", true);
+      if (!e || p.length < 8) return say("Enter your email and a password of at least 8 characters.", true);
+      try { say("Creating account…"); const r = await IELTS.auth.signUp(e, p, nm); settings.name = nm; localStorage.setItem("ielts_pending_name", nm); saveSettings(); say(r && r.session ? "Account created. Signing you in…" : "Account created. If a confirmation email arrives, open the link, then sign in with your email and password."); } catch (err) { say(err.message || "Could not create the account", true); }
+    };
+    $("#pw", wrap).addEventListener("keydown", e => { if (e.key === "Enter") $("#go", wrap).click(); });
     $("#link", wrap).onclick = async () => { const [e] = creds(); if (!e) return say("Enter your email first.", true); try { await IELTS.auth.signInWithEmail(e); say("Check your email for the sign-in link."); } catch (err) { say(err.message || "Could not send the link", true); } };
     $("#skip", wrap).onclick = () => { sessionStorage.setItem(SKIP_KEY, "1"); go("home"); };
     app.appendChild(wrap);
   });
   route("plan", (app) => {
-    const back = el(`<button class="tbtn">Home</button>`); back.onclick = () => go("home");
-    app.appendChild(topbar({ title: "Study plan", buttons: [back] }));
     const wrap = el(`<div class="home"><div class="breadcrumb"><a href="#home">Home</a> › Study plan</div>
       <h1>Seven weeks to 29 December</h1>
       <p class="muted">About 10 hours a week: the 35-minute daily spine (4 hours) plus three focus sessions of about 2 hours. Based on the IELTS Advantage plan, re-ordered so that Listening, Reading and Speaking are practised every week rather than only near the end, and with a checkpoint each week that decides what carries over.</p>
@@ -59,36 +75,38 @@
     app.appendChild(wrap);
   });
   route("home", (app) => {
-    const settingsBtn = el(`<button class="tbtn">Settings</button>`);
-    settingsBtn.onclick = async () => {
-      const root = $("#modal-root");
-      const f = el(`<div class="modal-bg"><div class="modal"><h2>Settings</h2><label style="display:block;margin:8px 0">Candidate name<br><input id="nm" value="${esc(settings.name)}" style="width:100%;padding:6px"></label><label style="display:block;margin:8px 0"><input type="checkbox" id="rp" ${settings.realisticPauses ? "checked" : ""}> Realistic Listening pauses (20 s to read questions, 2 min to check at the end)</label><p class="muted" style="margin-top:10px">Progress is saved in this browser and, when you are signed in, to your account so it follows you between devices. Text size and colours can be changed from the Settings button inside each test.</p><div class="acts"><button class="btn danger" id="clr">Clear all history</button><button class="btn" id="c">Close</button><button class="btn primary" id="s">Save</button></div></div></div>`);
-      $("#c", f).onclick = () => root.innerHTML = "";
-      $("#clr", f).onclick = async () => { root.innerHTML = ""; if (await modal(`<h2>Delete all saved attempts?</h2><p>Every score and marked essay will be removed from this browser and from your account. This cannot be undone.</p>`, [{ label: "Cancel", value: false }, { label: "Delete everything", value: true, cls: "danger" }])) { for (const a of getAttempts().slice()) await IELTS.deleteAttempt(a.id); IELTS.toast("History cleared"); IELTS.render(); } };
-      $("#s", f).onclick = () => { settings.name = $("#nm", f).value.trim() || IELTS.CANDIDATE; settings.realisticPauses = $("#rp", f).checked; saveSettings(); root.innerHTML = ""; IELTS.render(); };
-      root.innerHTML = ""; root.appendChild(f);
-    };
-    const authBtns = [];
-    if (IELTS.auth.enabled) { const b = el(`<button class="tbtn">${IELTS.userId ? "Sign out" : "Sign in"}</button>`); b.onclick = async () => { if (IELTS.userId) { await IELTS.auth.signOut(); } else { sessionStorage.removeItem("ielts_skip_signin"); go("signin"); } }; authBtns.push(b); }
-    app.appendChild(topbar({ title: "Academic practice", buttons: [...authBtns, settingsBtn] }));
     const days = Math.ceil((EXAM_DATE - Date.now()) / 86400000);
     const all = getAttempts();
     const latest = m => { const a = all.filter(x => x.module === m && x.band); return a.length ? a[a.length - 1].band : null; };
     const tgt = m => IELTS.TARGETS[m];
-    const count = m => all.filter(x => x.module === m).length;
+    const hour = new Date().getHours(); const greet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    const first = (settings.name || "").split(" ")[0];
+    const today = new Date(); const week = SCHEDULE.find(w => today >= new Date(w.from + "T00:00:00") && today <= new Date(w.to + "T23:59:59")) || SCHEDULE[0];
+    const dayIdx = Math.floor((today - new Date(week.from + "T00:00:00")) / 86400000);
+    const spineToday = dayIdx % 2 === 0 ? ["listening", "One Listening part (20 min)"] : ["reading", "One Reading passage (20 min)"];
+    const MODS = [["listening", "Listening", "4 parts, 40 questions, about 30 minutes. Played once, as in the exam."], ["reading", "Reading", "3 passages, 40 questions, 60 minutes. Highlight, note, review."], ["writing", "Writing", "Task 1 report and Task 2 essay, 60 minutes. Marked on the four criteria."], ["speaking", "Speaking", "Three parts with a spoken examiner, recorded and marked."]];
+    const pct = b => ((Math.min(9, Math.max(5, b)) - 5) / 4 * 100);
+    const lanes = MODS.map(([m, n], i) => { const b = latest(m); const t = tgt(m); return `<div class="lane" style="top:${18 + i * 50}px"><div class="rail"></div>${b ? `<div class="fill" style="left:0;width:${pct(b)}%"></div>` : ""}<div class="goal" style="left:${pct(t)}%" title="Target ${t}"></div><div class="dot ${b ? "" : "none"}" style="left:${b ? pct(b) : 0}%"></div><div class="val ${b ? "" : "none"}" style="left:${b ? pct(b) : 0}%">${b ? "Band " + b : "no test yet"}</div><div class="name">${n}</div></div>`; }).join("");
+    const ticks = [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map(b => `<div class="tick ${Number.isInteger(b) ? "major" : ""}" style="left:${pct(b)}%">${Number.isInteger(b) ? `<span>${b}</span>` : ""}</div>`).join("");
+    const gaps = MODS.map(([m, n]) => { const b = latest(m); return b ? [n, tgt(m) - b] : null; }).filter(Boolean);
+    const foot = gaps.length ? (gaps.every(g => g[1] <= 0) ? "Every module is at or above its target. Hold it there with one full test a week." : `Furthest from target: ${gaps.sort((x, y) => y[1] - x[1])[0][0]}, ${gaps[0][1].toFixed(1)} band${gaps[0][1] === 1 ? "" : "s"} to go.`) : "Take one test in each module this week to place your markers on the line.";
+    const recent = all.slice(-6).reverse();
     const wrap = el(`<div class="home">
-      <div class="hero"><div><h1>IELTS Academic practice</h1><p class="muted">For ${esc(settings.name)} · targets Listening 8.0 · Reading 8.0 · Writing 7.5 · Speaking 7.5</p><p class="muted" id="sync" style="font-size:13px">${syncLabel()}</p></div>
-      <div class="countdown">${days > 0 ? `<div class="big">${days}</div><div class="muted">days to the exam (${EXAM_DATE.toLocaleDateString("en-GB", { day: "numeric", month: "long" })})</div>` : `<div class="big">Exam day</div>`}</div></div>
-      <div class="modules">
-        ${[["listening", "Listening", "4 parts · 40 questions · about 30 minutes. Browser voices, played once."], ["reading", "Reading", "3 passages · 40 questions · 60 minutes. Highlighting, notes, review flags."], ["writing", "Writing", "Task 1 report + Task 2 essay · 60 minutes. Marked on the four criteria."], ["speaking", "Speaking", "3 parts with Claude in voice mode. Timers and cue cards here."]].map(([m, n, d]) => `<div class="module"><h2>${n}<span class="band">${latest(m) ? "latest " + latest(m) + " / target " + tgt(m) : "target " + tgt(m)}</span></h2><div class="desc">${d}</div><div class="actions"><button class="btn primary" data-go="${m}" data-full="1">${m === "speaking" ? "Open examiner sets" : "Full timed test"}</button><button class="btn" data-go="${m}">${m === "speaking" ? "Random set" : m === "writing" ? "Single task or drills" : "Practise one part"}</button></div></div>`).join("")}
+      <div class="greet"><div><h1>${greet}${first ? ", " + esc(first) : ""}.</h1><div class="date">${today.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} · ${days > 0 ? `${days} days to the exam on 29 December` : "Exam day"}</div></div><div class="sync">${syncLabel()}</div></div>
+      <div class="bandline"><div class="head"><h2>Where you stand</h2><div class="legend"><span><i style="background:var(--bl-teal)"></i>Latest band</span><span><i style="background:var(--bl-saffron);border-radius:2px;width:4px"></i>Target</span></div></div>
+        <div class="scale"><div class="axis">${ticks}</div>${lanes}</div><div class="foot">${foot}</div></div>
+      <div class="today">
+        <div class="card"><h3>Today</h3><div class="when">${esc(week.title)} · ${new Date(week.from + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })} to ${new Date(week.to + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
+          <ul><li>${spineToday[1]}</li><li>Error log: for each wrong answer write spelling, missed or misunderstood (5 min)</li><li>Grammar drill: articles, dangling modifiers, agreement (10 min)</li>${week !== SCHEDULE[0] ? "<li>Record one Part 1 answer and listen back (5 min)</li>" : ""}</ul>
+          <p class="muted" style="margin:12px 0 0;font-size:13px">This week: ${week.items.slice(0, 2).map(esc).join("; ")}. <a href="#plan">Full plan</a></p></div>
+        <div class="card"><h3>Start now</h3><div class="next" style="margin-top:10px"><button class="btn primary" data-go="${spineToday[0]}">${spineToday[1].replace(/ \(.*\)/, "")}<span>›</span></button><button class="btn" data-go="writing">Writing drill: two-sentence introduction<span>›</span></button><button class="btn" data-go="speaking">Speaking set with the examiner<span>›</span></button></div></div>
       </div>
-      <div class="section"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Seven weeks to 29 December</h2><span class="row"><a class="btn small" href="#plan">Full study plan</a><a class="btn small" href="#progress">See progress</a></span></div><div class="schedule" style="margin-top:10px">${SCHEDULE.map(w => { const now = new Date(); const on = now >= new Date(w.from + "T00:00:00") && now <= new Date(w.to + "T23:59:59"); return `<div class="wk ${on ? "now" : ""}"><b>${w.title}</b><span class="muted">${new Date(w.from + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${new Date(w.to + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span><ul style="margin:6px 0 0 16px;padding:0">${w.items.map(i => `<li>${i}</li>`).join("")}</ul></div>`; }).join("")}</div></div>
-      <div class="section"><h2>Every day, 35 minutes (the spine)</h2><div class="row" style="gap:16px"><span class="tag">One Listening part or one Reading passage, alternating (20 min)</span><span class="tag">Error log: spelling, missed, misunderstood (5 min)</span><span class="tag">Grammar drill: articles, modifiers, agreement (10 min)</span><span class="tag">From week 2: one recorded Part 1 answer (5 min)</span></div></div>
-      <div class="section"><h2>Targets in numbers</h2><div class="row" style="gap:16px"><span class="tag">Listening 35/40</span><span class="tag">Reading 35/40</span><span class="tag">Writing: every criterion 7.5, Task 2 counts double</span><span class="tag">Speaking: extended answers, few errors, 7.5 on each criterion</span></div></div>
+      <div class="modules">${MODS.map(([m, n, d]) => `<div class="module"><h2>${n}<span class="band">${latest(m) ? `<b>${latest(m)}</b> · target ${tgt(m)}` : "target " + tgt(m)}</span></h2><div class="desc">${d}</div><div class="actions"><button class="btn primary" data-go="${m}" data-full="1">${m === "speaking" ? "Examiner sets" : "Full timed test"}</button><button class="btn" data-go="${m}">${m === "speaking" ? "Random set" : m === "writing" ? "Single task or drills" : "Practise one part"}</button></div></div>`).join("")}</div>
+      ${recent.length ? `<div class="section"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Recent attempts</h2><a class="btn small" href="#progress">All progress</a></div><table class="rtable recent" style="margin-top:12px"><tr><th>When</th><th>Test</th><th>Result</th></tr>${recent.map(a => `<tr><td>${IELTS.fmtDate(a.date)}</td><td>${esc(a.testTitle || a.module)}${a.scope && a.scope !== "full" ? ` <span class="muted">(${esc(a.scope)})</span>` : ""}</td><td>${a.band ? `<span class="band-pill">${a.band}</span>` : "<span class='muted'>unmarked</span>"}${a.raw != null ? ` <span class="muted">${a.raw}/40</span>` : ""}</td></tr>`).join("")}</table></div>` : ""}
     </div>`);
     $$("[data-go]", wrap).forEach(b => b.onclick = () => {
       const m = b.dataset.go;
-      if (m === "speaking") return b.dataset.full ? go("speaking") : go("speaking-set", { id: (window.SPEAKING_SETS || [])[Math.floor(Math.random() * (window.SPEAKING_SETS || []).length)].id });
+      if (m === "speaking") return b.dataset.full ? go("speaking") : go("speaking-live-instr", { id: (window.SPEAKING_SETS || [])[Math.floor(Math.random() * (window.SPEAKING_SETS || []).length)].id });
       go(m);
     });
     app.appendChild(wrap);

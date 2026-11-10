@@ -260,7 +260,8 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
     const app = $("#app"); app.innerHTML = ""; app.className = "";
     $("#modal-root").innerHTML = "";
     window.scrollTo(0, 0);
-    fn(app, state.params);
+    const target = (window.Shell && fn !== routes.signin && Shell.wants(name)) ? Shell.mount(app, name) : app;
+    fn(target, state.params);
   }
   window.addEventListener("hashchange", render);
 

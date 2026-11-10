@@ -2,7 +2,7 @@
 (function () {
   const { $, $$, esc, el, go, settings, saveSettings, getAttempts, modal } = IELTS;
   const SHELL = new Set(["home", "plan", "progress", "listening", "reading", "writing", "speaking", "speaking-set", "ideas", "listening-results", "reading-results", "reading-review", "writing-mark", "speaking-live-results"]);
-  const MARK = `<svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="blg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2A2D8F"/><stop offset="1" stop-color="#5A5EE0"/></linearGradient></defs><rect width="40" height="40" rx="11" fill="url(#blg)"/><path d="M8 30 L15 25 L21 27.5 L31 12.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="31" cy="12.5" r="3.4" fill="#E09F3E" stroke="#fff" stroke-width="1.4"/></svg>`;
+  const MARK = `<svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="blg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2A2D8F"/><stop offset="1" stop-color="#5A5EE0"/></linearGradient></defs><rect width="40" height="40" rx="11" fill="url(#blg)"/><g fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 10v20"/><path d="M8.5 10h7a4.6 4.6 0 0 1 0 9.2h-7"/><path d="M8.5 19.2h8a5.2 5.2 0 0 1 0 10.4h-8"/><circle cx="30" cy="14.4" r="4.3"/><circle cx="30" cy="25.1" r="4.9"/></g></svg>`;
   const ICON = {
     home: `<svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg>`,
     listening: `<svg viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/></svg>`,

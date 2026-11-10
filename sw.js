@@ -1,6 +1,6 @@
 /* Offline support. index.html is fetched from the network first (so a new deploy shows up at once);
    versioned assets (?v=) are served from the cache first, which makes repeat loads instant. */
-const CACHE = "ielts-202611100146";
+const CACHE = "ielts-202611100158";
 self.addEventListener("install", e => { self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {

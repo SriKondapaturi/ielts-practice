@@ -10,4 +10,13 @@
 })();
 
 // offline cache (https or localhost only)
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js?v=202611100146").catch(() => { }); }); }
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js?v=202611100158").catch(() => { }); }); }
+// One-click repair: opening the site with ?reset=1 clears the offline cache and the service worker, then reloads clean
+if (location.search.includes("reset=1")) {
+  (async () => {
+    try { if ("serviceWorker" in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch (e) { }
+    try { if (window.caches) for (const k of await caches.keys()) await caches.delete(k); } catch (e) { }
+    try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) { }
+    location.replace(location.pathname + "#home");
+  })();
+}

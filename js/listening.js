@@ -48,6 +48,7 @@
       const used = new Set(); const out = {};
       const avail = this.accentsAvailable();
       const narratorPool = this.pool("female", "en-GB").concat(this.pool("male", "en-GB"));
+      const baseRate = settings.ttsRate + (this.rateOffset || 0);
       out.__narrator = { voice: narratorPool[0] || null, pitch: 1, rate: settings.ttsRate, accent: "en-GB" };
       if (out.__narrator.voice) used.add(out.__narrator.voice.name);
       let ai = 0;
@@ -62,7 +63,7 @@
         const dup = Object.values(out).filter(o => o.voice && voice && o.voice.name === voice.name).length;
         // natural variation: each speaker has a slightly different pace and pitch
         const rateJitter = [0, 0.04, -0.03, 0.02, -0.05][i % 5];
-        out[k] = { voice, pitch: dup ? (dup % 2 ? 0.82 : 1.18) : (gender === "male" ? 0.93 + 0.04 * (i % 2) : 1.02 + 0.05 * (i % 2)), rate: Math.max(0.8, Math.min(1.15, settings.ttsRate + rateJitter + (dup ? 0.04 : 0))), accent: voice ? this.locale(voice) : null };
+        out[k] = { voice, pitch: dup ? (dup % 2 ? 0.82 : 1.18) : (gender === "male" ? 0.93 + 0.04 * (i % 2) : 1.02 + 0.05 * (i % 2)), rate: Math.max(0.8, Math.min(1.15, baseRate + rateJitter + (dup ? 0.04 : 0))), accent: voice ? this.locale(voice) : null };
       });
       return out;
     },
@@ -120,7 +121,7 @@
       <div class="row" style="margin-top:8px"><label><input type="checkbox" id="realistic" ${settings.realisticPauses ? "checked" : ""}> Realistic pauses (reading time before each part, 2 minutes to check at the end)</label></div>
       <div class="row" style="margin-top:8px"><label>Speed <input type="range" id="rate" min="0.8" max="1.1" step="0.05" value="${settings.ttsRate}"> <span id="ratev">${settings.ttsRate}</span></label></div>
       <div class="row" style="margin-top:8px"><label><input type="checkbox" id="allv" ${settings.allVoices ? "checked" : ""}> Use every installed voice (only if "Test the voices" plays all three)</label></div></div>
-      <div class="section"><h2>Full tests</h2><div class="testlist" id="full"></div></div>
+      <div class="section"><h2>Full tests</h2><p class="muted">Tests are graded like a Cambridge book: <span class="tag diff-easy">Easy</span> ×3, <span class="tag diff-standard">Standard</span> ×3, <span class="tag diff-harder">Harder</span> ×2, all within the real exam range. Start with the easy ones, move up when you reach your target twice in a row.</p><div class="testlist" id="full"></div></div>
       <div class="section"><h2>Practise one part</h2><p class="muted">In single-part practice you may pause and replay the recording.</p><div class="testlist" id="single"></div></div>
     </div>`);
     $("#realistic", wrap).onchange = e => { settings.realisticPauses = e.target.checked; IELTS.saveSettings(); };
@@ -135,11 +136,11 @@
     const done = IELTS.getAttempts("listening");
     tests().forEach(t => {
       const prev = done.filter(a => a.testId === t.id && a.scope === "full"); const last = prev[prev.length - 1];
-      const card = el(`<div class="t"><b>${esc(t.title)}</b><div class="meta">${t.parts.map(p => esc(p.intro.replace(/^You will hear /, "").replace(/\.$/, ""))).join(" · ")}</div><div class="meta">${last ? `Last: ${last.raw}/40, Band ${last.band} (${IELTS.fmtDate(last.date)})` : "Not attempted"}</div><button class="btn primary">Start full test</button></div>`);
+      const card = el(`<div class="t"><b>${esc(t.title)}</b> ${IELTS.diffTag(t)}<div class="meta">${t.parts.map(p => esc(p.intro.replace(/^You will hear /, "").replace(/\.$/, ""))).join(" · ")}</div><div class="meta">${last ? `Last: ${last.raw}/40, Band ${last.band} (${IELTS.fmtDate(last.date)})` : "Not attempted"}</div><button class="btn primary">Start full test</button></div>`);
       $("button", card).onclick = () => go("listening-instr", { testId: t.id, scope: "full" });
       $("#full", wrap).appendChild(card);
       t.parts.forEach(p => {
-        const pc = el(`<div class="t"><b>${esc(t.title)} · Part ${p.number}</b><div class="meta">${esc(p.intro)}</div><button class="btn">Practise this part</button></div>`);
+        const pc = el(`<div class="t"><b>${esc(t.title)} · Part ${p.number}</b> ${IELTS.diffTag(t)}<div class="meta">${esc(p.intro)}</div><button class="btn">Practise this part</button></div>`);
         $("button", pc).onclick = () => go("listening-instr", { testId: t.id, scope: "P" + p.number });
         $("#single", wrap).appendChild(pc);
       });
@@ -249,6 +250,7 @@
     };
 
     async function playPart(pt) {
+      Speech.rateOffset = t.difficulty === "easy" ? -0.04 : t.difficulty === "harder" ? 0.05 : 0;
       const voices = Speech.assign(pt.speakers); let lastSpeaker = null;
       status.textContent = `Part ${pt.number}`; status.title = Speech.describe(voices, pt.speakers);
       await say(`Part ${pt.number}. ${pt.intro}`, narrator);

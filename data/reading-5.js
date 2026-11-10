@@ -1,7 +1,7 @@
 // Reading Test 5 — original content
 window.READING_TESTS = window.READING_TESTS || [];
 window.READING_TESTS.push({
-  id: "R5",
+  id: "R5", difficulty: "standard",
   title: "Reading Test 5",
   passages: [
     {

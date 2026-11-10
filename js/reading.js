@@ -11,18 +11,18 @@
     const wrap = el(`<div class="home"><div class="breadcrumb"><a href="#home">Home</a> › Reading</div>
       <h1>Academic Reading</h1>
       <p class="muted">Three passages, 40 questions, 60 minutes. The real test gives no extra time to transfer answers. Choose a full test, or practise one passage with 20 minutes.</p>
-      <div class="section"><h2>Full tests</h2><div class="testlist" id="full"></div></div>
+      <div class="section"><h2>Full tests</h2><p class="muted">Tests are graded like a Cambridge book: <span class="tag diff-easy">Easy</span> ×3, <span class="tag diff-standard">Standard</span> ×3, <span class="tag diff-harder">Harder</span> ×2, all within the real exam range. Start with the easy ones, move up when you reach your target twice in a row.</p><div class="testlist" id="full"></div></div>
       <div class="section"><h2>Practise one passage (20 minutes)</h2><div class="testlist" id="single"></div></div>
     </div>`);
     const done = IELTS.getAttempts("reading");
     tests().forEach(t => {
       const prev = done.filter(a => a.testId === t.id && a.scope === "full");
       const last = prev[prev.length - 1];
-      const card = el(`<div class="t"><b>${esc(t.title)}</b><div class="meta">${t.passages.map(p => esc(p.title)).join(" · ")}</div><div class="meta">${last ? `Last: ${last.raw}/40, Band ${last.band} (${IELTS.fmtDate(last.date)})` : "Not attempted"}</div><button class="btn primary">Start full test</button></div>`);
+      const card = el(`<div class="t"><b>${esc(t.title)}</b> ${IELTS.diffTag(t)}<div class="meta">${t.passages.map(p => esc(p.title)).join(" · ")}</div><div class="meta">${last ? `Last: ${last.raw}/40, Band ${last.band} (${IELTS.fmtDate(last.date)})` : "Not attempted"}</div><button class="btn primary">Start full test</button></div>`);
       $("button", card).onclick = () => go("reading-instr", { testId: t.id, scope: "full" });
       $("#full", wrap).appendChild(card);
       t.passages.forEach(p => {
-        const pc = el(`<div class="t"><b>${esc(t.title)} · Passage ${p.number}</b><div class="meta">${esc(p.title)} · ${p.questionGroups.map(g => Questions.TYPE_LABEL[g.type]).filter((v, i, a) => a.indexOf(v) === i).join(", ")}</div><button class="btn">Practise this passage</button></div>`);
+        const pc = el(`<div class="t"><b>${esc(t.title)} · Passage ${p.number}</b> ${IELTS.diffTag(t)}<div class="meta">${esc(p.title)} · ${p.questionGroups.map(g => Questions.TYPE_LABEL[g.type]).filter((v, i, a) => a.indexOf(v) === i).join(", ")}</div><button class="btn">Practise this passage</button></div>`);
         $("button", pc).onclick = () => go("reading-instr", { testId: t.id, scope: "P" + p.number });
         $("#single", wrap).appendChild(pc);
       });

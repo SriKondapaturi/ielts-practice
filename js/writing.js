@@ -13,18 +13,18 @@
     const wrap = el(`<div class="home"><div class="breadcrumb"><a href="#home">Home</a> › Writing</div>
       <h1>Academic Writing</h1>
       <p class="muted">Task 1 (a report on a chart, table, map or process, at least 150 words, about 20 minutes) and Task 2 (an essay, at least 250 words, about 40 minutes). 60 minutes in total, one clock, no extra time. Task 2 counts twice as much as Task 1.</p>
-      <div class="section"><h2>Full tests (60 minutes)</h2><div class="testlist" id="full"></div></div>
+      <div class="section"><h2>Full tests (60 minutes)</h2><p class="muted">Tests are graded like a Cambridge book: <span class="tag diff-easy">Easy</span> ×3, <span class="tag diff-standard">Standard</span> ×3, <span class="tag diff-harder">Harder</span> ×2, all within the real exam range. Start with the easy ones, move up when you reach your target twice in a row.</p><div class="testlist" id="full"></div></div>
       <div class="section"><h2>Single task</h2><div class="testlist" id="single"></div></div>
       <div class="section"><h2>Quick drills</h2><p class="muted">Short, focused practice marked against the same criteria. Introductions follow the two-sentence method from your study plan.</p><div class="testlist" id="drills"></div></div>
       <div class="section"><h2>Idea bank</h2><p class="muted">Your own topic notes, condensed, for planning body paragraphs.</p><button class="btn" id="ideas">Open idea bank</button></div>
     </div>`);
     tests().forEach(t => {
       const prev = done.filter(a => a.testId === t.id && a.scope === "full"); const last = prev[prev.length - 1];
-      const c = el(`<div class="t"><b>${esc(t.title)}</b><div class="meta">Task 1: ${esc(t.task1.kind)} · Task 2: ${esc(t.task2.topic)} (${esc(t.task2.type)})</div><div class="meta">${last && last.band ? `Last: Band ${last.band} (${IELTS.fmtDate(last.date)})` : "Not attempted"}</div><button class="btn primary">Start full test</button></div>`);
+      const c = el(`<div class="t"><b>${esc(t.title)}</b> ${IELTS.diffTag(t)}<div class="meta">Task 1: ${esc(t.task1.kind)} · Task 2: ${esc(t.task2.topic)} (${esc(t.task2.type)})</div><div class="meta">${last && last.band ? `Last: Band ${last.band} (${IELTS.fmtDate(last.date)})` : "Not attempted"}</div><button class="btn primary">Start full test</button></div>`);
       $("button", c).onclick = () => go("writing-instr", { testId: t.id, scope: "full" }); $("#full", wrap).appendChild(c);
-      const c1 = el(`<div class="t"><b>${esc(t.title)} · Task 1</b><div class="meta">${esc(t.task1.prompt.split("\n")[0])}</div><button class="btn">Task 1 only (20 min)</button></div>`);
+      const c1 = el(`<div class="t"><b>${esc(t.title)} · Task 1</b> ${IELTS.diffTag(t)}<div class="meta">${esc(t.task1.prompt.split("\n")[0])}</div><button class="btn">Task 1 only (20 min)</button></div>`);
       $("button", c1).onclick = () => go("writing-instr", { testId: t.id, scope: "T1" }); $("#single", wrap).appendChild(c1);
-      const c2 = el(`<div class="t"><b>${esc(t.title)} · Task 2</b><div class="meta">${esc(t.task2.prompt.split("\n")[0].slice(0, 110))}…</div><button class="btn">Task 2 only (40 min)</button></div>`);
+      const c2 = el(`<div class="t"><b>${esc(t.title)} · Task 2</b> ${IELTS.diffTag(t)}<div class="meta">${esc(t.task2.prompt.split("\n")[0].slice(0, 110))}…</div><button class="btn">Task 2 only (40 min)</button></div>`);
       $("button", c2).onclick = () => go("writing-instr", { testId: t.id, scope: "T2" }); $("#single", wrap).appendChild(c2);
     });
     [["intro", "Introduction only", "Two sentences: paraphrase + opinion. 8 minutes.", drills().intro.length],

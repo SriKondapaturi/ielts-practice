@@ -1,7 +1,7 @@
 // Listening Test 8 — original content
 window.LISTENING_TESTS = window.LISTENING_TESTS || [];
 window.LISTENING_TESTS.push({
-  id: "L8",
+  id: "L8", difficulty: "standard",
   title: "Listening Test 8",
   parts: [
     {

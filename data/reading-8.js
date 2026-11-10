@@ -1,7 +1,7 @@
 // Reading Test 8 — original content
 window.READING_TESTS = window.READING_TESTS || [];
 window.READING_TESTS.push({
-  id: "R8",
+  id: "R8", difficulty: "standard",
   title: "Reading Test 8",
   passages: [
     {

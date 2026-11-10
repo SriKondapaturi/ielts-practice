@@ -1,7 +1,7 @@
 // Reading Test 2 — original content
 window.READING_TESTS = window.READING_TESTS || [];
 window.READING_TESTS.push({
-  id: "R2",
+  id: "R2", difficulty: "harder",
   title: "Reading Test 2",
   passages: [
     {
@@ -35,8 +35,8 @@ window.READING_TESTS.push({
           questions: [
             { n: 1, text: "In the 1950s, the handling of cargo in port could account for half the cost of sending goods abroad.", answer: "TRUE" },
             { n: 2, text: "McLean was working in the shipping industry when he first had the idea for the container.", answer: "FALSE" },
-            { n: 3, text: "Loading the Ideal X cost far less per tonne than loading loose cargo.", answer: "TRUE" },
-            { n: 4, text: "The containers carried by the Ideal X were the same length as the later international standard.", answer: "FALSE" },
+            { n: 3, text: "McLean's company charged other manufacturers for the use of its twist-lock design.", answer: "FALSE" },
+            { n: 4, text: "The boxes carried on the Ideal X were shorter than the lengths later fixed by the international standard.", answer: "TRUE" },
             { n: 5, text: "Dockworkers' unions opposed the introduction of containers.", answer: "NOT GIVEN" },
             { n: 6, text: "Felixstowe was already a major port before containers were introduced.", answer: "NOT GIVEN" },
             { n: 7, text: "Economists believe that trade agreements did more than containerisation to increase trade in the late twentieth century.", answer: "FALSE" }

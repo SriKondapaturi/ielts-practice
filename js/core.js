@@ -214,6 +214,8 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
     (buttons || []).forEach(b => bar.appendChild(b));
     return bar;
   }
+  const DIFF_LABEL = { easy: "Easy", standard: "Standard", harder: "Harder" };
+  function diffTag(t) { const d = t && t.difficulty; return d ? `<span class="tag diff-${d}" title="${d === "easy" ? "Like an easier Cambridge test: start here" : d === "harder" ? "Like a harder Cambridge test: denser texts, more distractors" : "Typical Cambridge difficulty"}">${DIFF_LABEL[d]}</span>` : ""; }
   function timerElement() { return el(`<div class="timer">--:--</div>`); }
   // Display settings as offered in the computer-delivered test (text size, colour scheme)
   const TEXT_SIZES = [["regular", "Regular"], ["large", "Large"], ["xl", "Extra large"]];
@@ -265,5 +267,5 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
   // leave-guard
   function guardLeave(active) { window.onbeforeunload = active ? (e => { e.preventDefault(); e.returnValue = ""; }) : null; }
 
-  return { EXAM_DATE, TARGETS, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, displayButton, applyDisplay, route, go, render, state, guardLeave };
+  return { EXAM_DATE, TARGETS, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, displayButton, applyDisplay, diffTag, route, go, render, state, guardLeave };
 })();

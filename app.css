@@ -304,3 +304,8 @@ html.cs-wb .exam .dragopt:hover, html.cs-yb .exam .dragopt:hover { background: #
 .examiner-line.talking .ex-icon { background: var(--accent); animation: blink 1s steps(2) infinite; }
 .listen { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: #fafafa; }
 .listen .mic-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bad); animation: blink 1.2s steps(2) infinite; flex-shrink: 0; }
+
+/* difficulty tags */
+.tag.diff-easy { background: #e6f4ea; color: #1e6b35; }
+.tag.diff-standard { background: #eef1f6; color: #334; }
+.tag.diff-harder { background: #fdecea; color: #8a1c1c; }

@@ -1,7 +1,7 @@
 // Speaking sets — original examiner material following the official three-part format
 window.SPEAKING_SETS = [
   {
-    id: "S1", theme: "Hometown, Study, Weather",
+    id: "S1", difficulty: "easy", theme: "Hometown, Study, Weather",
     part1: { topics: [
       { name: "Hometown", questions: ["Where is your hometown?", "What do you like most about living there?", "Has your hometown changed much since you were a child?", "Would you like to live there in the future?"] },
       { name: "Work or study", questions: ["Do you work or are you a student?", "Why did you choose that subject or job?", "What do you find most difficult about it?", "What are your plans for the next few years?"] },
@@ -14,7 +14,7 @@ window.SPEAKING_SETS = [
     ] }
   },
   {
-    id: "S2", theme: "Food, Hobbies, Sleep",
+    id: "S2", difficulty: "easy", theme: "Food, Hobbies, Sleep",
     part1: { topics: [
       { name: "Food", questions: ["What kind of food do you like to eat?", "Do you prefer eating at home or in a restaurant?", "Did you eat different food when you were a child?", "Do you think people in your country eat healthily?"] },
       { name: "Hobbies", questions: ["Do you have any hobbies?", "How did you become interested in that?", "Is there a hobby you would like to take up?"] },
@@ -27,7 +27,7 @@ window.SPEAKING_SETS = [
     ] }
   },
   {
-    id: "S3", theme: "Family, Technology, Shopping",
+    id: "S3", difficulty: "standard", theme: "Family, Technology, Shopping",
     part1: { topics: [
       { name: "Family", questions: ["Do you have a large or a small family?", "Who are you closest to in your family?", "Do you spend much time with your family?", "How important are family celebrations in your culture?"] },
       { name: "Technology", questions: ["How often do you use the internet?", "What do you use your phone for most?", "Is there any piece of technology you could not live without?"] },
@@ -40,7 +40,7 @@ window.SPEAKING_SETS = [
     ] }
   },
   {
-    id: "S4", theme: "Nature, Travel, Daily routine",
+    id: "S4", difficulty: "easy", theme: "Nature, Travel, Daily routine",
     part1: { topics: [
       { name: "Nature and parks", questions: ["Do you like spending time in nature?", "Are there many parks where you live?", "Did you spend much time outdoors as a child?"] },
       { name: "Travel", questions: ["Do you enjoy travelling?", "What is the most interesting place you have visited?", "Do you prefer travelling alone or with others?", "Where would you like to travel in the future?"] },
@@ -53,7 +53,7 @@ window.SPEAKING_SETS = [
     ] }
   },
   {
-    id: "S5", theme: "Home, Friends, Reading",
+    id: "S5", difficulty: "harder", theme: "Home, Friends, Reading",
     part1: { topics: [
       { name: "Home", questions: ["Do you live in a house or a flat?", "What is your favourite room at home?", "What would you change about your home if you could?"] },
       { name: "Friends", questions: ["Do you have many close friends?", "How do you usually keep in touch with your friends?", "What do you like doing with your friends?", "Is it easy to make new friends where you live?"] },
@@ -66,7 +66,7 @@ window.SPEAKING_SETS = [
     ] }
   },
   {
-    id: "S6", theme: "Job, Music, Health",
+    id: "S6", difficulty: "standard", theme: "Job, Music, Health",
     part1: { topics: [
       { name: "Work", questions: ["What do you do?", "What is a typical working day like for you?", "Would you like to change your job in the future?", "What makes a job satisfying?"] },
       { name: "Music", questions: ["What kind of music do you like?", "When do you usually listen to music?", "Have you ever learned to play an instrument?"] },
@@ -79,7 +79,7 @@ window.SPEAKING_SETS = [
     ] }
   },
   {
-    id: "S7", theme: "Neighbourhood, Art, Celebrations",
+    id: "S7", difficulty: "harder", theme: "Neighbourhood, Art, Celebrations",
     part1: { topics: [
       { name: "Your neighbourhood", questions: ["What is your neighbourhood like?", "Do you know your neighbours well?", "What facilities are there near your home?", "Is it a good place for children to grow up?"] },
       { name: "Art", questions: ["Do you like art?", "Did you enjoy art lessons at school?", "Have you ever visited an art gallery?"] },
@@ -92,7 +92,7 @@ window.SPEAKING_SETS = [
     ] }
   },
   {
-    id: "S8", theme: "Clothes, Animals, Time",
+    id: "S8", difficulty: "standard", theme: "Clothes, Animals, Time",
     part1: { topics: [
       { name: "Clothes", questions: ["What kind of clothes do you usually wear?", "Do you ever wear traditional clothes?", "Is fashion important to you?", "Do you prefer comfortable clothes or stylish ones?"] },
       { name: "Animals", questions: ["Do you like animals?", "Did you have a pet when you were a child?", "Are there any wild animals in your country?"] },

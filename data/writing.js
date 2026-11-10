@@ -192,7 +192,7 @@
   // ---------- TESTS ----------
   window.WRITING_TESTS = [
     {
-      id: "W1", title: "Writing Test 1",
+      id: "W1", difficulty: "easy", title: "Writing Test 1",
       task1: {
         kind: "line",
         prompt: "The graph below shows the percentage of households with access to the internet in four countries between 2000 and 2020.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -221,7 +221,7 @@
       }
     },
     {
-      id: "W2", title: "Writing Test 2",
+      id: "W2", difficulty: "easy", title: "Writing Test 2",
       task1: {
         kind: "bar",
         prompt: "The chart below shows the average number of hours per week spent on unpaid housework by men and women in five countries in 2021.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -249,7 +249,7 @@
       }
     },
     {
-      id: "W3", title: "Writing Test 3",
+      id: "W3", difficulty: "standard", title: "Writing Test 3",
       task1: {
         kind: "process",
         prompt: "The diagram below shows how recycled paper is produced.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -278,7 +278,7 @@
       }
     },
     {
-      id: "W4", title: "Writing Test 4",
+      id: "W4", difficulty: "standard", title: "Writing Test 4",
       task1: {
         kind: "map",
         prompt: "The maps below show the village of Seaview in 1995 and the same village today.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -364,7 +364,7 @@
 
   window.WRITING_TESTS.push(
     {
-      id: "W5", title: "Writing Test 5",
+      id: "W5", difficulty: "easy", title: "Writing Test 5",
       task1: {
         kind: "table",
         prompt: "The table below shows the percentage of the population aged 65 and over in five countries in 1990 and 2020, with a projection for 2050.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -390,7 +390,7 @@
       }
     },
     {
-      id: "W6", title: "Writing Test 6",
+      id: "W6", difficulty: "standard", title: "Writing Test 6",
       task1: {
         kind: "pie",
         prompt: "The charts below show the percentage of average household spending on six categories in one country in 1995 and 2020.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -415,7 +415,7 @@
       }
     },
     {
-      id: "W7", title: "Writing Test 7",
+      id: "W7", difficulty: "harder", title: "Writing Test 7",
       task1: {
         kind: "mixed",
         prompt: "The chart below shows the number of cars per 1,000 people and the percentage of journeys made by public transport in one European city between 1990 and 2020.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -441,7 +441,7 @@
       }
     },
     {
-      id: "W8", title: "Writing Test 8",
+      id: "W8", difficulty: "harder", title: "Writing Test 8",
       task1: {
         kind: "process",
         prompt: "The diagram below shows how electricity is generated at a hydroelectric power station.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.",

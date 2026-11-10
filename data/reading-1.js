@@ -1,7 +1,7 @@
 // Reading Test 1 — original content
 window.READING_TESTS = window.READING_TESTS || [];
 window.READING_TESTS.push({
-  id: "R1",
+  id: "R1", difficulty: "harder",
   title: "Reading Test 1",
   passages: [
     {
@@ -35,9 +35,9 @@ window.READING_TESTS.push({
           questions: [
             { n: 1, text: "Some parts of northern Chile have never had any recorded rainfall.", answer: "TRUE" },
             { n: 2, text: "Fog droplets are heavier than raindrops.", answer: "FALSE" },
-            { n: 3, text: "A fog-harvesting system needs a pump to move water to the storage tank.", answer: "FALSE" },
+            { n: 3, text: "The design can operate without any source of power apart from the wind.", answer: "TRUE" },
             { n: 4, text: "The islanders of El Hierro sold the water collected from the fountain tree.", answer: "NOT GIVEN" },
-            { n: 5, text: "Carlos Espinosa chose a mesh that was already used in agriculture.", answer: "TRUE" },
+            { n: 5, text: "The material Espinosa settled on had been developed specifically for collecting fog.", answer: "FALSE" },
             { n: 6, text: "The Chungungo project ended because the mesh wore out faster than expected.", answer: "FALSE" }
           ]
         },

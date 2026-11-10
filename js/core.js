@@ -64,7 +64,7 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
       if (backendMode === "supabase") {
         const { data: { session } } = await withTimeout(sb.auth.getSession(), 6000, "auth timeout");
         if (!session) { syncState = "signed-out"; document.dispatchEvent(new CustomEvent("attempts-changed")); return; }
-        authUser = session.user; userId = session.user.id;
+        authUser = session.user; userId = session.user.id; sessionStorage.removeItem("ielts_signin_reload");
         const { data: rows, error } = await withTimeout(sb.from("attempts").select("data").eq("user_id", userId), 10000, "load timeout");
         if (error) throw error;
         const remoteIds = mergeRemote((rows || []).map(r => r.data));
@@ -88,7 +88,14 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
       document.dispatchEvent(new CustomEvent("attempts-changed"));
     } catch (e) { syncState = (sb || (db && userId)) ? "error" : "local"; document.dispatchEvent(new CustomEvent("attempts-changed")); }
   })();
-  if (sb) sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN" && !userId) location.reload(); if (event === "SIGNED_OUT") location.reload(); });
+  // Reload only on a real change of signed-in user (never on token refreshes or the initial session, which would loop)
+  if (sb) sb.auth.onAuthStateChange((event, session) => {
+    const newId = session && session.user ? session.user.id : null;
+    dbReady.then(() => {
+      if (event === "SIGNED_IN" && newId && !userId) { if (!sessionStorage.getItem("ielts_signin_reload")) { sessionStorage.setItem("ielts_signin_reload", "1"); location.reload(); } return; }
+      if (event === "SIGNED_OUT" && userId) { sessionStorage.removeItem("ielts_signin_reload"); location.reload(); }
+    });
+  });
   function saveSettingsLocal() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) { } }
   async function saveAttempt(a) {
     a.id = a.id || uid(); a.date = a.date || Date.now(); a.kind = "attempt";

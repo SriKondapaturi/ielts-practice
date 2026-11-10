@@ -1,8 +1,8 @@
-/* Bandline shell: sidebar + main column for every screen outside the exam hall */
+/* Ascend shell: sidebar + main column for every screen outside the exam hall */
 (function () {
   const { $, $$, esc, el, go, settings, saveSettings, getAttempts, modal } = IELTS;
   const SHELL = new Set(["home", "plan", "progress", "listening", "reading", "writing", "speaking", "speaking-set", "ideas", "listening-results", "reading-results", "reading-review", "writing-mark", "speaking-live-results"]);
-  const MARK = `<svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="blg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0B5C56"/><stop offset="1" stop-color="#17A294"/></linearGradient></defs><rect width="40" height="40" rx="11" fill="url(#blg)"/><path d="M8 30 L15 25 L21 27.5 L31 12.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="31" cy="12.5" r="3.4" fill="#E09F3E" stroke="#fff" stroke-width="1.4"/></svg>`;
+  const MARK = `<svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="blg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#9E2235"/><stop offset="1" stop-color="#E04A60"/></linearGradient></defs><rect width="40" height="40" rx="11" fill="url(#blg)"/><path d="M8 30 L15 25 L21 27.5 L31 12.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="31" cy="12.5" r="3.4" fill="#E09F3E" stroke="#fff" stroke-width="1.4"/></svg>`;
   const ICON = {
     home: `<svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg>`,
     listening: `<svg viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/></svg>`,
@@ -43,7 +43,7 @@
     const [syncCls, syncTxt] = syncShort();
     const cur = section(name);
     const side = el(`<aside class="side">
-      <a class="brand" href="#home">${MARK}<span><span class="word">Bandline</span><span class="sub">IELTS Academic practice</span></span></a>
+      <a class="brand" href="#home">${MARK}<span><span class="word">Ascend</span><span class="sub">IELTS Academic practice</span></span></a>
       <button class="collapse" title="Collapse the sidebar">${ICON.chev}</button>
       <nav>${NAV.map(([r, t]) => { const m = ["listening", "reading", "writing", "speaking"].includes(r) ? latest(r) : null; return `<a class="nav ${cur === r ? "on" : ""}" href="#${r}">${ICON[r]}<span class="t">${t}</span>${m ? `<span class="k">${m}</span>` : ""}</a>`; }).join("")}</nav>
       <div class="grow"></div>
@@ -55,7 +55,7 @@
     $("#bl-settings", side).onclick = openSettings;
     const ab = $("#bl-auth", side); if (ab) ab.onclick = authAction;
     const main = el(`<div class="main"></div>`);
-    const mh = el(`<div class="mobilehead"><a class="brand" href="#home">${MARK}Bandline</a><div class="right"><button class="btn small" id="mh-settings">Settings</button>${IELTS.auth.enabled ? `<button class="btn small" id="mh-auth">${IELTS.userId ? "Sign out" : "Sign in"}</button>` : ""}</div></div>`);
+    const mh = el(`<div class="mobilehead"><a class="brand" href="#home">${MARK}Ascend</a><div class="right"><button class="btn small" id="mh-settings">Settings</button>${IELTS.auth.enabled ? `<button class="btn small" id="mh-auth">${IELTS.userId ? "Sign out" : "Sign in"}</button>` : ""}</div></div>`);
     $("#mh-settings", mh).onclick = openSettings; const mab = $("#mh-auth", mh); if (mab) mab.onclick = authAction;
     main.appendChild(mh);
     const mob = el(`<nav class="mobilebar">${[["home", "Today"], ["listening", "Listen"], ["reading", "Read"], ["writing", "Write"], ["speaking", "Speak"], ["progress", "Progress"]].map(([r, t]) => `<a class="${cur === r ? "on" : ""}" href="#${r}">${ICON[r]}${t}</a>`).join("")}</nav>`);

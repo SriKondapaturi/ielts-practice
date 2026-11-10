@@ -300,7 +300,7 @@ Overall = average of FC, LR and GRA rounded to the nearest 0.5. Give 6-10 correc
     if (!tr.some(t => t.answer)) { area.innerHTML = `<p class="status">No speech was transcribed, so there is nothing to mark. Check the microphone permission and use Chrome or Edge.</p>`; return; }
     (async () => {
       const sample = await getSample();
-      if (!sample) { area.innerHTML = `<h3>Marking in Claude chat</h3><p>Sign in to get marking on this page, or press <b>Copy marking prompt</b> and paste it into a Claude chat.</p>`; return; }
+      if (!sample) { area.innerHTML = `<h3>Sign in to get this marked</h3><p>Marking on the page runs only for a signed-in account. Sign in and you will be brought straight back here.</p><div class="row"><button class="btn primary" id="signin-mark">Sign in and mark</button></div><p class="muted" style="margin-top:10px">Or press <b>Copy marking prompt</b> and paste it into a Claude chat.</p>`; $("#signin-mark", area).onclick = () => { sessionStorage.setItem("ielts_return", JSON.stringify({ route: "speaking-live-results", params: { id: a.id } })); sessionStorage.removeItem("ielts_skip_signin"); go("signin"); }; return; }
       area.innerHTML = `<p class="status">The examiner is marking your transcript… about a minute.</p>`;
       try {
         const res = await sample(speakingPrompt(s, tr), { modelTier: "complex", cache: false });

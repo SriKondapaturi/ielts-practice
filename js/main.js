@@ -7,6 +7,8 @@
   document.addEventListener("click", keepAwake, { once: true });
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") keepAwake(); });
   IELTS.render();
+  // after a sign-in that was started from a results page, return there
+  IELTS.dbReady.then(() => { const r = sessionStorage.getItem("ielts_return"); if (r && IELTS.userId) { sessionStorage.removeItem("ielts_return"); try { const o = JSON.parse(r); IELTS.go(o.route, o.params); } catch (e) { } } });
 })();
 
 // Remove any service worker and caches left from earlier versions (they could stall page loads on some laptops)

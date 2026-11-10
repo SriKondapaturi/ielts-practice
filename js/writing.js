@@ -214,7 +214,10 @@
     (async () => {
       const sample = await getSample();
       if (!sample) {
-        area.innerHTML = `<h3>Marking in Claude chat</h3><p>In-page marking is not available in this view (it works when the page is opened signed in to claude.ai). Press <b>Copy marking prompt</b>, paste it into a Claude chat, and you will get the bands, corrections and an improved paragraph. Then use <b>Enter bands manually</b> to record the result here.</p>`;
+        area.innerHTML = IELTS.auth.enabled
+          ? `<h3>Sign in to get this marked</h3><p>Marking on the page runs only for a signed-in account. Sign in and you will be brought straight back here; the marking starts automatically.</p><div class="row"><button class="btn primary" id="signin-mark">Sign in and mark</button></div><p class="muted" style="margin-top:10px">Alternatively, press <b>Copy marking prompt</b>, paste it into a Claude chat, then record the bands with <b>Enter bands manually</b>.</p>`
+          : `<h3>Marking in Claude chat</h3><p>Marking on the page is not available in this copy of the site. Press <b>Copy marking prompt</b>, paste it into a Claude chat, and you will get the bands, corrections and an improved paragraph. Then use <b>Enter bands manually</b> to record the result here.</p>`;
+        const sb = $("#signin-mark", area); if (sb) sb.onclick = () => { sessionStorage.setItem("ielts_return", JSON.stringify({ route: "writing-mark", params: { id: a.id } })); sessionStorage.removeItem("ielts_skip_signin"); go("signin"); };
         return;
       }
       area.innerHTML = `<p class="status">Claude is marking your writing against the four criteria… this takes about a minute.</p><div id="stream" class="muted" style="font-size:12px;white-space:pre-wrap;max-height:160px;overflow:auto"></div>`;

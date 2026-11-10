@@ -11,7 +11,7 @@
     const wrap = el(`<div class="home"><div class="breadcrumb"><a href="#home">Home</a> › Reading</div>
       <h1>Academic Reading</h1>
       <p class="muted">Three passages, 40 questions, 60 minutes. The real test gives no extra time to transfer answers. Choose a full test, or practise one passage with 20 minutes.</p>
-      <div class="section"><h2>Full tests</h2><p class="muted">Tests are graded like a Cambridge book: <span class="tag diff-easy">Easy</span> ×3, <span class="tag diff-standard">Standard</span> ×3, <span class="tag diff-harder">Harder</span> ×2, all within the real exam range. Start with the easy ones, move up when you reach your target twice in a row.</p><div class="testlist" id="full"></div></div>
+      <div class="section"><h2>Full tests</h2><div class="testlist" id="full"></div></div>
       <div class="section"><h2>Practise one passage (20 minutes)</h2><div class="testlist" id="single"></div></div>
     </div>`);
     const done = IELTS.getAttempts("reading");

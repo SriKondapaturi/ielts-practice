@@ -37,8 +37,7 @@ Begin the test now.`;
       <h1>Speaking</h1>
       <p class="muted">Two ways to practise. <b>Examiner on this page</b>: the page asks the questions aloud, runs the official timings (Part 1: 4–5 min; Part 2: 1 min preparation, 2 min talk; Part 3: 4–5 min), records you, transcribes your answers and marks Fluency, Vocabulary and Grammar. <b>Claude in voice mode</b>: a full interactive interview with follow-up questions and a Pronunciation band; one button copies the strict-examiner prompt.</p>
       <div class="card" style="margin-bottom:16px"><b>Recommended weekly mix</b> (from your study plan): two sets with the examiner on this page for fluency and timing, one full mock with Claude in voice mode for pronunciation and follow-up questions. Use headphones so the examiner's voice is not picked up by the microphone.</div>
-      <p class="muted">Sets are graded: <span class="tag diff-easy">Easy</span> (concrete, personal Part 3 topics), <span class="tag diff-standard">Standard</span>, <span class="tag diff-harder">Harder</span> (abstract Part 3: society, information, the arts). Start easy.</p>
-      <div class="testlist" id="sets"></div>
+            <div class="testlist" id="sets"></div>
       <div class="section"><button class="btn" id="random">Random set</button></div>
     </div>`);
     const done = IELTS.getAttempts("speaking");

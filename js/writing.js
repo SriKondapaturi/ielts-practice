@@ -13,7 +13,7 @@
     const wrap = el(`<div class="home"><div class="breadcrumb"><a href="#home">Home</a> › Writing</div>
       <h1>Academic Writing</h1>
       <p class="muted">Task 1 (a report on a chart, table, map or process, at least 150 words, about 20 minutes) and Task 2 (an essay, at least 250 words, about 40 minutes). 60 minutes in total, one clock, no extra time. Task 2 counts twice as much as Task 1.</p>
-      <div class="section"><h2>Full tests (60 minutes)</h2><p class="muted">Tests are graded like a Cambridge book: <span class="tag diff-easy">Easy</span> ×3, <span class="tag diff-standard">Standard</span> ×3, <span class="tag diff-harder">Harder</span> ×2, all within the real exam range. Start with the easy ones, move up when you reach your target twice in a row.</p><div class="testlist" id="full"></div></div>
+      <div class="section"><h2>Full tests (60 minutes)</h2><div class="testlist" id="full"></div></div>
       <div class="section"><h2>Single task</h2><div class="testlist" id="single"></div></div>
       <div class="section"><h2>Quick drills</h2><p class="muted">Short, focused practice marked against the same criteria. Introductions follow the two-sentence method from your study plan.</p><div class="testlist" id="drills"></div></div>
       <div class="section"><h2>Idea bank</h2><p class="muted">Your own topic notes, condensed, for planning body paragraphs.</p><button class="btn" id="ideas">Open idea bank</button></div>

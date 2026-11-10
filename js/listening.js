@@ -121,7 +121,7 @@
       <div class="row" style="margin-top:8px"><label><input type="checkbox" id="realistic" ${settings.realisticPauses ? "checked" : ""}> Realistic pauses (reading time before each part, 2 minutes to check at the end)</label></div>
       <div class="row" style="margin-top:8px"><label>Speed <input type="range" id="rate" min="0.8" max="1.1" step="0.05" value="${settings.ttsRate}"> <span id="ratev">${settings.ttsRate}</span></label></div>
       <div class="row" style="margin-top:8px"><label><input type="checkbox" id="allv" ${settings.allVoices ? "checked" : ""}> Use every installed voice (only if "Test the voices" plays all three)</label></div></div>
-      <div class="section"><h2>Full tests</h2><p class="muted">Tests are graded like a Cambridge book: <span class="tag diff-easy">Easy</span> ×3, <span class="tag diff-standard">Standard</span> ×3, <span class="tag diff-harder">Harder</span> ×2, all within the real exam range. Start with the easy ones, move up when you reach your target twice in a row.</p><div class="testlist" id="full"></div></div>
+      <div class="section"><h2>Full tests</h2><div class="testlist" id="full"></div></div>
       <div class="section"><h2>Practise one part</h2><p class="muted">In single-part practice you may pause and replay the recording.</p><div class="testlist" id="single"></div></div>
     </div>`);
     $("#realistic", wrap).onchange = e => { settings.realisticPauses = e.target.checked; IELTS.saveSettings(); };

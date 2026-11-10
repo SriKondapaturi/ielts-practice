@@ -26,9 +26,18 @@
     ACCENT_NAME: { "en-GB": "British", "en-AU": "Australian", "en-US": "American", "en-IE": "Irish", "en-NZ": "New Zealand", "en-CA": "Canadian", "en-IN": "Indian", "en-ZA": "South African" },
     quality(v) { return /natural|online|neural|premium|enhanced/i.test(v.name) ? 0 : /google|microsoft/i.test(v.name) ? 1 : /apple|samantha|daniel|karen|moira|tessa|rishi|fiona/i.test(v.name) ? 2 : 3; },
     locale(v) { const m = String(v.lang || "").replace("_", "-").match(/^en-([A-Za-z]{2})/); return m ? "en-" + m[1].toUpperCase() : "en"; },
-    accentsAvailable() { const set = new Set(this.voices.filter(v => /^en/i.test(v.lang)).map(v => this.locale(v))); return this.ACCENTS.filter(a => set.has(a)); },
-    pool(gender, accent) {
+    // In Chrome on Windows the Microsoft (SAPI) voices often play nothing while reporting success; Google voices are reliable there. Edge's Natural voices are fine.
+    isChrome: /Chrome\//.test(navigator.userAgent) && !/Edg\//.test(navigator.userAgent),
+    usable() {
       const en = this.voices.filter(v => /^en/i.test(v.lang));
+      if (settings.allVoices) return en;
+      const google = en.filter(v => /google/i.test(v.name));
+      if (this.isChrome && google.length >= 2) return en.filter(v => /google/i.test(v.name) || /natural|online/i.test(v.name));
+      return en;
+    },
+    accentsAvailable() { const set = new Set(this.usable().map(v => this.locale(v))); return this.ACCENTS.filter(a => set.has(a)); },
+    pool(gender, accent) {
+      const en = this.usable();
       const rank = v => (accent ? (this.locale(v) === accent ? 0 : 3) : (/en-GB/i.test(v.lang) ? 0 : 1)) + this.quality(v) / 10;
       const list = en.filter(v => this.classify(v) === gender).sort((a, b) => rank(a) - rank(b));
       if (list.length) return list;
@@ -53,7 +62,7 @@
         const dup = Object.values(out).filter(o => o.voice && voice && o.voice.name === voice.name).length;
         // natural variation: each speaker has a slightly different pace and pitch
         const rateJitter = [0, 0.04, -0.03, 0.02, -0.05][i % 5];
-        out[k] = { voice, pitch: dup ? (dup % 2 ? 0.85 : 1.15) : (gender === "male" ? 0.93 + 0.04 * (i % 2) : 1.02 + 0.05 * (i % 2)), rate: Math.max(0.8, Math.min(1.15, settings.ttsRate + rateJitter)), accent: voice ? this.locale(voice) : null };
+        out[k] = { voice, pitch: dup ? (dup % 2 ? 0.82 : 1.18) : (gender === "male" ? 0.93 + 0.04 * (i % 2) : 1.02 + 0.05 * (i % 2)), rate: Math.max(0.8, Math.min(1.15, settings.ttsRate + rateJitter + (dup ? 0.04 : 0))), accent: voice ? this.locale(voice) : null };
       });
       return out;
     },
@@ -109,16 +118,18 @@
       <p class="muted">Four parts, 40 questions, about 30 minutes plus checking time. The recording is read aloud by your browser with a different voice for each speaker and is played once only, as in the real test. Use headphones or speakers.</p>
       <div class="card" style="margin-bottom:18px"><div class="row"><button class="btn small" id="voicetest">Test the voices</button><span class="muted" id="voiceinfo">Checking available voices…</span></div>
       <div class="row" style="margin-top:8px"><label><input type="checkbox" id="realistic" ${settings.realisticPauses ? "checked" : ""}> Realistic pauses (reading time before each part, 2 minutes to check at the end)</label></div>
-      <div class="row" style="margin-top:8px"><label>Speed <input type="range" id="rate" min="0.8" max="1.1" step="0.05" value="${settings.ttsRate}"> <span id="ratev">${settings.ttsRate}</span></label></div></div>
+      <div class="row" style="margin-top:8px"><label>Speed <input type="range" id="rate" min="0.8" max="1.1" step="0.05" value="${settings.ttsRate}"> <span id="ratev">${settings.ttsRate}</span></label></div>
+      <div class="row" style="margin-top:8px"><label><input type="checkbox" id="allv" ${settings.allVoices ? "checked" : ""}> Use every installed voice (only if "Test the voices" plays all three)</label></div></div>
       <div class="section"><h2>Full tests</h2><div class="testlist" id="full"></div></div>
       <div class="section"><h2>Practise one part</h2><p class="muted">In single-part practice you may pause and replay the recording.</p><div class="testlist" id="single"></div></div>
     </div>`);
     $("#realistic", wrap).onchange = e => { settings.realisticPauses = e.target.checked; IELTS.saveSettings(); };
+    $("#allv", wrap).onchange = e => { settings.allVoices = e.target.checked; IELTS.saveSettings(); IELTS.render(); };
     $("#rate", wrap).oninput = e => { settings.ttsRate = +e.target.value; $("#ratev", wrap).textContent = e.target.value; IELTS.saveSettings(); };
     Speech.init().then(v => {
-      const en = v.filter(x => /^en/i.test(x.lang));
+      const en = Speech.usable(); const skipped = v.filter(x => /^en/i.test(x.lang)).length - en.length;
       const acc = Speech.accentsAvailable().map(a => Speech.ACCENT_NAME[a]);
-      $("#voiceinfo", wrap).textContent = en.length ? `${en.length} English voice${en.length > 1 ? "s" : ""} available (${en.filter(x => Speech.classify(x) === "female").length} female, ${en.filter(x => Speech.classify(x) === "male").length} male). Accents: ${acc.join(", ") || "English"}. Speakers in a part are given different accents, as in the real recordings.` : "No speech voices found in this browser. Use the 'Read with Claude' option inside a test, or try Chrome or Edge.";
+      $("#voiceinfo", wrap).textContent = en.length ? `${en.length} English voice${en.length > 1 ? "s" : ""} available (${en.filter(x => Speech.classify(x) === "female").length} female, ${en.filter(x => Speech.classify(x) === "male").length} male). Accents: ${acc.join(", ") || "English"}. Speakers in a part are given different voices.${skipped ? ` ${skipped} Microsoft voice${skipped > 1 ? "s" : ""} skipped: they are silent in Chrome. Use Microsoft Edge for more accents.` : ""}` : "No speech voices found in this browser. Use the 'Read with Claude' option inside a test, or try Chrome or Edge.";
     });
     $("#voicetest", wrap).onclick = async () => { await Speech.init(); Speech.onStall = (resume) => { $("#voiceinfo", wrap).textContent = "No sound came out. Close other tabs of this site, check the tab is not muted, or type chrome://restart in the address bar and try again."; Speech.onStall = null; resume(); }; const sp = { W: { name: "Speaker 1", gender: "female" }, M: { name: "Speaker 2", gender: "male" }, X: { name: "Speaker 3", gender: "female" } }; const a = Speech.assign(sp); $("#voiceinfo", wrap).textContent = "Voices for this test: " + Speech.describe(a, sp); await Speech.speak("Hello, this is the first speaker. My name is S-M-I-T-H.", a.W); await Speech.speak("And this is the second speaker. My number is 0-7-7-0-0, 9-0-0, 1-2-3.", a.M); await Speech.speak("And I am the third speaker. The meeting is at 9.30 on Tuesday.", a.X); };
     const done = IELTS.getAttempts("listening");

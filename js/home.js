@@ -61,27 +61,27 @@
   });
   // ---------- target bands (asked once after the account is created; changeable any time) ----------
   const PRESETS = [
-    { id: "uni65", name: "University entry", bands: { listening: 6.5, reading: 6.5, writing: 6.5, speaking: 6.5 }, who: "Most undergraduate and master's courses in the UK, Australia, Canada and Ireland ask for overall 6.5 with no module below 6.0. Check your own offer letter." },
-    { id: "uni70", name: "Competitive courses", bands: { listening: 7, reading: 7, writing: 7, speaking: 7 }, who: "Top universities, law, business and teaching programmes often ask for overall 7.0 with no module below 6.5 or 7.0." },
-    { id: "clb9", name: "Canada Express Entry, CLB 9", bands: { listening: 8, reading: 7, writing: 7, speaking: 7 }, who: "Listening 8.0 and 7.0 in the other three is CLB 9, the level that earns maximum language points for permanent residence." },
-    { id: "health", name: "Health professions", bands: { listening: 7, reading: 7, writing: 7, speaking: 7 }, who: "UK nursing (NMC) and medical (GMC) registration ask for 7.0 in each module (GMC also wants overall 7.5; NMC accepts Writing 6.5). Australian AHPRA asks for 7.0 in each." },
-    { id: "neha", name: "Strong profile for scholarships", bands: { listening: 8, reading: 8, writing: 7.5, speaking: 7.5 }, who: "Overall 8.0 stands out for scholarships and top-tier admissions. Writing and Speaking 7.5 are hard-earned; plan the time." },
-    { id: "eight", name: "Band 8 in every module", bands: { listening: 8, reading: 8, writing: 8, speaking: 8 }, who: "Rare requirement (some elite programmes and professional bodies). Writing 8.0 in particular takes sustained work." },
-    { id: "custom", name: "Set my own", bands: null, who: "Choose each module yourself, from 5.0 to 9.0 in half bands." }
+    { id: "uni65", name: "University entry", bands: { listening: 6.5, reading: 6.5, writing: 6.5, speaking: 6.5 }, who: "Most degree courses in the US, UK, Canada and Australia: 6.5 overall, nothing below 6.0." },
+    { id: "uni70", name: "Competitive courses", bands: { listening: 7, reading: 7, writing: 7, speaking: 7 }, who: "Top universities and US graduate schools: 7.0 overall, 6.5 to 7.0 in each." },
+    { id: "clb9", name: "Canada Express Entry, CLB 9", bands: { listening: 8, reading: 7, writing: 7, speaking: 7 }, who: "Maximum language points for Canadian permanent residence." },
+    { id: "health", name: "Health professions", bands: { listening: 7.5, reading: 7, writing: 7, speaking: 7.5 }, who: "Doctors and nurses (UK GMC and NMC, Australian AHPRA, US state boards): 7.0 in each, 7.5 overall." },
+    { id: "neha", name: "Scholarships and top-tier admissions", bands: { listening: 8, reading: 8, writing: 7.5, speaking: 7.5 }, who: "8.0 overall stands out anywhere." },
+    { id: "eight", name: "Band 8 in every module", bands: { listening: 8, reading: 8, writing: 8, speaking: 8 }, who: "Elite programmes and a few professional bodies." },
+    { id: "custom", name: "Set my own", bands: null, who: "5.0 to 9.0 in half bands, per module." }
   ];
   route("targets", (app) => {
     const cur = Object.assign({}, IELTS.DEFAULT_TARGETS, settings.targets || {});
     const first = !settings.targets;
     const wrap = el(`<div class="home targets"><div class="breadcrumb"><a href="#home">Home</a> › Target bands</div>
       <h1>${first ? "What are you aiming for?" : "Your target bands"}</h1>
-      <p class="muted" style="max-width:66ch">${first ? "Pick the requirement that matches your plan. Every band marker, checkpoint and marking prompt on this site is measured against these four numbers, and you can change them any time from Settings." : "Change the four numbers the whole site measures you against."}</p>
+      <p class="muted" style="max-width:66ch">${first ? "Pick a requirement or set your own. Everything on the site is measured against these four numbers; change them any time in Settings." : "Change the four numbers the site measures you against."}</p>
       <div class="presets">${PRESETS.map(p => `<button class="preset" data-id="${p.id}"><b>${esc(p.name)}</b><span class="nums">${p.bands ? ["listening", "reading", "writing", "speaking"].map(m => `<span><i>${m[0].toUpperCase()}</i>${p.bands[m].toFixed(1)}</span>`).join("") : "<span class='muted'>L · R · W · S</span>"}</span><span class="who">${esc(p.who)}</span></button>`).join("")}</div>
       <div class="card custom"><h3>Your four targets</h3><div class="sliders">${["listening", "reading", "writing", "speaking"].map(m => `<label><span class="m">${m[0].toUpperCase() + m.slice(1)}</span><input type="range" min="5" max="9" step="0.5" data-m="${m}" value="${cur[m]}"><b data-v="${m}">${cur[m].toFixed(1)}</b></label>`).join("")}</div>
         <p class="muted" id="overall">Overall ${IELTS.overallTarget().toFixed(1)}</p>
         <div class="row" style="margin-top:12px"><button class="btn primary" id="save">${first ? "Save and start" : "Save targets"}</button>${first ? "" : `<a class="btn" href="#home">Cancel</a>`}</div></div>
     </div>`);
     const sliders = $$("input[type=range]", wrap);
-    const paint = () => { const t = {}; sliders.forEach(s => { t[s.dataset.m] = +s.value; $(`[data-v=${s.dataset.m}]`, wrap).textContent = (+s.value).toFixed(1); }); const o = Math.round((t.listening + t.reading + t.writing + t.speaking) / 4 * 2) / 2; $("#overall", wrap).textContent = `Overall ${o.toFixed(1)}`; $$(".preset", wrap).forEach(b => { const p = PRESETS.find(x => x.id === b.dataset.id); b.classList.toggle("on", !!p.bands && ["listening", "reading", "writing", "speaking"].every(m => p.bands[m] === t[m])); }); return t; };
+    const paint = () => { const t = {}; sliders.forEach(s => { t[s.dataset.m] = +s.value; $(`[data-v=${s.dataset.m}]`, wrap).textContent = (+s.value).toFixed(1); }); const o = Math.round((t.listening + t.reading + t.writing + t.speaking) / 4 * 2) / 2; $("#overall", wrap).textContent = `Overall ${o.toFixed(1)}`; let hit = false; $$(".preset", wrap).forEach(b => { const p = PRESETS.find(x => x.id === b.dataset.id); const on = !hit && !!p.bands && ["listening", "reading", "writing", "speaking"].every(m => p.bands[m] === t[m]); if (on) hit = true; b.classList.toggle("on", on); }); return t; };
     sliders.forEach(s => s.oninput = paint); paint();
     $$(".preset", wrap).forEach(b => b.onclick = () => { const p = PRESETS.find(x => x.id === b.dataset.id); if (p.bands) { sliders.forEach(s => s.value = p.bands[s.dataset.m]); paint(); } else { $(".custom", wrap).scrollIntoView({ behavior: "smooth", block: "center" }); sliders[0].focus(); } });
     $("#save", wrap).onclick = () => { settings.targets = paint(); saveSettings(); IELTS.toast("Targets saved"); go("home"); };

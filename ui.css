@@ -233,3 +233,18 @@
   .auth .form { padding: 20px 16px 40px; align-items: start; }
 }
 @media (prefers-reduced-motion: reduce) { .shell, .side .collapse svg { transition: none; } }
+
+/* target bands */
+.shell .targets .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 18px 0; }
+.shell .preset { text-align: left; background: var(--bl-surface); border: 1px solid var(--bl-hair); border-radius: var(--bl-radius); padding: 16px 16px 14px; cursor: pointer; font-family: inherit; color: var(--bl-ink); display: flex; flex-direction: column; gap: 8px; transition: border-color .15s, box-shadow .15s; }
+.shell .preset:hover { border-color: #B9C2CF; }
+.shell .preset.on { border-color: var(--bl-teal); box-shadow: 0 0 0 3px rgba(59, 63, 191, .14); }
+.shell .preset > b { font-size: 16px; font-weight: 600; }
+.shell .preset .nums { display: flex; gap: 10px; font-family: var(--bl-display); font-size: 20px; }
+.shell .preset .nums i { font-style: normal; font-family: var(--bl-sans); font-size: 11px; color: var(--bl-ink-3); margin-right: 3px; vertical-align: 4px; }
+.shell .preset .who { font-size: 13px; color: var(--bl-ink-3); line-height: 1.45; }
+.shell .targets .sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; margin-top: 8px; }
+.shell .targets .sliders label { display: grid; grid-template-columns: 90px 1fr 44px; align-items: center; gap: 10px; font-size: 14px; }
+.shell .targets .sliders input[type=range] { accent-color: var(--bl-teal); }
+.shell .targets .sliders b { font-family: var(--bl-display); font-size: 20px; font-weight: 500; text-align: right; }
+@media (max-width: 700px) { .shell .targets .sliders { grid-template-columns: 1fr; } }

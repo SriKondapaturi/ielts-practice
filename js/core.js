@@ -1,7 +1,11 @@
 /* Core: utilities, storage, timer, routing, marking helpers */
 window.IELTS = (function () {
   const EXAM_DATE = new Date("2026-12-29T09:00:00");
-  const TARGETS = { listening: 8, reading: 8, writing: 7.5, speaking: 7.5 };
+  const DEFAULT_TARGETS = { listening: 8, reading: 8, writing: 7.5, speaking: 7.5 };
+  // Per-account targets live in settings.targets (synced); until set, the defaults apply
+  const TARGETS = { get listening() { return (settings.targets || DEFAULT_TARGETS).listening; }, get reading() { return (settings.targets || DEFAULT_TARGETS).reading; }, get writing() { return (settings.targets || DEFAULT_TARGETS).writing; }, get speaking() { return (settings.targets || DEFAULT_TARGETS).speaking; } };
+  const targetsText = () => `Listening ${TARGETS.listening.toFixed(1)}, Reading ${TARGETS.reading.toFixed(1)}, Writing ${TARGETS.writing.toFixed(1)}, Speaking ${TARGETS.speaking.toFixed(1)}`;
+  const overallTarget = () => { const v = (TARGETS.listening + TARGETS.reading + TARGETS.writing + TARGETS.speaking) / 4; return Math.round(v * 2) / 2; };
   const CANDIDATE = "Neha Priyanka";
 
   // ---------- DOM helpers ----------
@@ -268,5 +272,5 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
   // leave-guard
   function guardLeave(active) { window.onbeforeunload = active ? (e => { e.preventDefault(); e.returnValue = ""; }) : null; }
 
-  return { EXAM_DATE, TARGETS, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, displayButton, applyDisplay, diffTag, route, go, render, state, guardLeave };
+  return { EXAM_DATE, TARGETS, DEFAULT_TARGETS, targetsText, overallTarget, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, displayButton, applyDisplay, diffTag, route, go, render, state, guardLeave };
 })();

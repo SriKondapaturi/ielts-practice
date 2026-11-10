@@ -59,11 +59,39 @@
     $("#skip", wrap).onclick = () => { sessionStorage.setItem(SKIP_KEY, "1"); go("home"); };
     app.appendChild(wrap);
   });
+  // ---------- target bands (asked once after the account is created; changeable any time) ----------
+  const PRESETS = [
+    { id: "uni65", name: "University entry", bands: { listening: 6.5, reading: 6.5, writing: 6.5, speaking: 6.5 }, who: "Most undergraduate and master's courses in the UK, Australia, Canada and Ireland ask for overall 6.5 with no module below 6.0. Check your own offer letter." },
+    { id: "uni70", name: "Competitive courses", bands: { listening: 7, reading: 7, writing: 7, speaking: 7 }, who: "Top universities, law, business and teaching programmes often ask for overall 7.0 with no module below 6.5 or 7.0." },
+    { id: "clb9", name: "Canada Express Entry, CLB 9", bands: { listening: 8, reading: 7, writing: 7, speaking: 7 }, who: "Listening 8.0 and 7.0 in the other three is CLB 9, the level that earns maximum language points for permanent residence." },
+    { id: "health", name: "Health professions", bands: { listening: 7, reading: 7, writing: 7, speaking: 7 }, who: "UK nursing (NMC) and medical (GMC) registration ask for 7.0 in each module (GMC also wants overall 7.5; NMC accepts Writing 6.5). Australian AHPRA asks for 7.0 in each." },
+    { id: "neha", name: "Strong profile for scholarships", bands: { listening: 8, reading: 8, writing: 7.5, speaking: 7.5 }, who: "Overall 8.0 stands out for scholarships and top-tier admissions. Writing and Speaking 7.5 are hard-earned; plan the time." },
+    { id: "eight", name: "Band 8 in every module", bands: { listening: 8, reading: 8, writing: 8, speaking: 8 }, who: "Rare requirement (some elite programmes and professional bodies). Writing 8.0 in particular takes sustained work." },
+    { id: "custom", name: "Set my own", bands: null, who: "Choose each module yourself, from 5.0 to 9.0 in half bands." }
+  ];
+  route("targets", (app) => {
+    const cur = Object.assign({}, IELTS.DEFAULT_TARGETS, settings.targets || {});
+    const first = !settings.targets;
+    const wrap = el(`<div class="home targets"><div class="breadcrumb"><a href="#home">Home</a> › Target bands</div>
+      <h1>${first ? "What are you aiming for?" : "Your target bands"}</h1>
+      <p class="muted" style="max-width:66ch">${first ? "Pick the requirement that matches your plan. Every band marker, checkpoint and marking prompt on this site is measured against these four numbers, and you can change them any time from Settings." : "Change the four numbers the whole site measures you against."}</p>
+      <div class="presets">${PRESETS.map(p => `<button class="preset" data-id="${p.id}"><b>${esc(p.name)}</b><span class="nums">${p.bands ? ["listening", "reading", "writing", "speaking"].map(m => `<span><i>${m[0].toUpperCase()}</i>${p.bands[m].toFixed(1)}</span>`).join("") : "<span class='muted'>L · R · W · S</span>"}</span><span class="who">${esc(p.who)}</span></button>`).join("")}</div>
+      <div class="card custom"><h3>Your four targets</h3><div class="sliders">${["listening", "reading", "writing", "speaking"].map(m => `<label><span class="m">${m[0].toUpperCase() + m.slice(1)}</span><input type="range" min="5" max="9" step="0.5" data-m="${m}" value="${cur[m]}"><b data-v="${m}">${cur[m].toFixed(1)}</b></label>`).join("")}</div>
+        <p class="muted" id="overall">Overall ${IELTS.overallTarget().toFixed(1)}</p>
+        <div class="row" style="margin-top:12px"><button class="btn primary" id="save">${first ? "Save and start" : "Save targets"}</button>${first ? "" : `<a class="btn" href="#home">Cancel</a>`}</div></div>
+    </div>`);
+    const sliders = $$("input[type=range]", wrap);
+    const paint = () => { const t = {}; sliders.forEach(s => { t[s.dataset.m] = +s.value; $(`[data-v=${s.dataset.m}]`, wrap).textContent = (+s.value).toFixed(1); }); const o = Math.round((t.listening + t.reading + t.writing + t.speaking) / 4 * 2) / 2; $("#overall", wrap).textContent = `Overall ${o.toFixed(1)}`; $$(".preset", wrap).forEach(b => { const p = PRESETS.find(x => x.id === b.dataset.id); b.classList.toggle("on", !!p.bands && ["listening", "reading", "writing", "speaking"].every(m => p.bands[m] === t[m])); }); return t; };
+    sliders.forEach(s => s.oninput = paint); paint();
+    $$(".preset", wrap).forEach(b => b.onclick = () => { const p = PRESETS.find(x => x.id === b.dataset.id); if (p.bands) { sliders.forEach(s => s.value = p.bands[s.dataset.m]); paint(); } else { $(".custom", wrap).scrollIntoView({ behavior: "smooth", block: "center" }); sliders[0].focus(); } });
+    $("#save", wrap).onclick = () => { settings.targets = paint(); saveSettings(); IELTS.toast("Targets saved"); go("home"); };
+    app.appendChild(wrap);
+  });
   route("plan", (app) => {
     const wrap = el(`<div class="home"><div class="breadcrumb"><a href="#home">Home</a> › Study plan</div>
       <h1>Seven weeks to 29 December</h1>
       <p class="muted">About 10 hours a week: the 35-minute daily spine (4 hours) plus three focus sessions of about 2 hours. Based on the IELTS Advantage plan, re-ordered so that Listening, Reading and Speaking are practised every week rather than only near the end, and with a checkpoint each week that decides what carries over.</p>
-      <div class="card" style="margin-bottom:14px"><h3>Targets</h3><p>Listening 8.0 (35 of 40) · Reading 8.0 (35 of 40) · Writing 7.5 (each criterion) · Speaking 7.5 (each criterion)</p>
+      <div class="card" style="margin-bottom:14px"><h3>Targets</h3><p>${IELTS.targetsText()} · overall ${IELTS.overallTarget().toFixed(1)} · <a href="#targets">change</a></p>
       <h3>Daily spine, every day</h3><ul><li>20 min: one Listening part or one Reading passage, alternating days. Full tests on Sundays in the weeks that call for them.</li><li>5 min: error log. For every wrong answer write one word: spelling, missed, or misunderstood. The Progress page shows which question types cost most.</li><li>10 min: grammar drill from the grammar ebook, in this order: articles, dangling modifiers, subject-verb agreement, complex sentences.</li><li>From week 2, 5 min: record one Part 1 answer (2 to 3 sentences with a reason) and listen back for fillers and single-word answers.</li></ul>
       <h3>Writing rules that apply from week 1</h3><ul><li>Introduction is two sentences: paraphrase the question, then state your opinion or what the essay covers. No background sentence ("In today's world…"), no "This essay will discuss/elucidate".</li><li>Each body paragraph: topic sentence, explanation of why, example, link. Two developed ideas beat four thin ones.</li><li>Prefer the precise simple word to the impressive vague one. Memorised linkers ("To commence with", "To recapitulate") lose marks at 7+.</li><li>Task 1 always has an overview paragraph with the two or three main features and no numbers.</li></ul>
       <h3>Checkpoint rule</h3><p>At the end of each week, compare the week's checkpoint with its pass mark. A module below its mark keeps one of the next week's three focus sessions. Above it, move on.</p></div>
@@ -75,6 +103,7 @@
     app.appendChild(wrap);
   });
   route("home", (app) => {
+    if (IELTS.userId && !settings.targets && IELTS.syncState === "synced") return go("targets");
     const days = Math.ceil((EXAM_DATE - Date.now()) / 86400000);
     const all = getAttempts();
     const latest = m => { const a = all.filter(x => x.module === m && x.band); return a.length ? a[a.length - 1].band : null; };
@@ -93,7 +122,7 @@
     const recent = all.slice(-6).reverse();
     const wrap = el(`<div class="home">
       <div class="greet"><div><h1>${greet}${first ? ", " + esc(first) : ""}.</h1><div class="date">${today.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} · ${days > 0 ? `${days} days to the exam on 29 December` : "Exam day"}</div></div><div class="sync">${syncLabel()}</div></div>
-      <div class="bandline"><div class="head"><h2>Where you stand</h2><div class="legend"><span><i style="background:var(--bl-teal)"></i>Latest band</span><span><i style="background:var(--bl-saffron);border-radius:2px;width:4px"></i>Target</span></div></div>
+      <div class="bandline"><div class="head"><h2>Where you stand</h2><div class="legend"><a href="#targets" style="color:var(--bl-ink-3)">Targets: ${IELTS.targetsText().replace(/[a-z]+ /gi, m => m[0] + " ")}</a><span><i style="background:var(--bl-teal)"></i>Latest band</span><span><i style="background:var(--bl-saffron);border-radius:2px;width:4px"></i>Target</span></div></div>
         <div class="scale"><div class="axis">${ticks}</div>${lanes}</div><div class="foot">${foot}</div></div>
       <div class="today">
         <div class="card"><h3>Today</h3><div class="when">${esc(week.title)} · ${new Date(week.from + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })} to ${new Date(week.to + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>

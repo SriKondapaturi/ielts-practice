@@ -23,7 +23,7 @@ ${s.part3.topics.map(t => `Topic: ${t.name}\n${t.questions.map(q => "- " + q).jo
 End with: "Thank you. That is the end of the Speaking test."
 
 ONLY AFTER saying that, drop the examiner role and give a written assessment:
-1. A band score (whole or half band) for each criterion: Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy, Pronunciation, and the overall Speaking band (average rounded to the nearest half band), calibrated to the real public band descriptors. My target is Band 7.5 in every criterion; be honest, not kind.
+1. A band score (whole or half band) for each criterion: Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy, Pronunciation, and the overall Speaking band (average rounded to the nearest half band), calibrated to the real public band descriptors. My target is Band ${IELTS.TARGETS.speaking} in every criterion; be honest, not kind.
 2. For each criterion, two or three specific observations quoting what I actually said.
 3. A list of my errors with corrections (grammar, word choice, pronunciation of specific words).
 4. Three upgraded versions of my weakest answers, written the way a Band 8 candidate would say them.
@@ -255,7 +255,7 @@ Begin the test now.`;
 
   function speakingPrompt(s, tr) {
     const lines = tr.map(t => `[Part ${t.part}] EXAMINER: ${t.question}\nCANDIDATE (${t.seconds}s, ${wordCount(t.answer)} words${t.seconds ? ", " + Math.round(wordCount(t.answer) / Math.max(1, t.seconds) * 60) + " wpm" : ""}): ${t.answer || "(no speech detected)"}`).join("\n\n");
-    return `You are a strict, certified IELTS Speaking examiner. Below is the automatic transcript of a candidate's full Speaking test (Parts 1 to 3) with the time each answer took and the words-per-minute rate. The candidate's target is Band 7.5 in every criterion; her recent level is around 6.5. Mark honestly against the public band descriptors, not kindly.
+    return `You are a strict, certified IELTS Speaking examiner. Below is the automatic transcript of a candidate's full Speaking test (Parts 1 to 3) with the time each answer took and the words-per-minute rate. The candidate's target is Band ${IELTS.TARGETS.speaking} in every criterion. Mark honestly against the public band descriptors, not kindly.
 
 Important: this is a speech-recognition transcript. It has no punctuation, may have auto-corrected a few small grammar slips, and cannot show pronunciation, intonation or hesitation sounds. Judge Fluency and Coherence from answer length, words per minute (a natural rate is roughly 120-160 wpm; under 90 suggests hesitation), self-correction, repetition and the use of discourse markers; Lexical Resource from range, precision, collocation, idiomatic language and paraphrase; Grammatical Range and Accuracy from the range of structures and visible errors (articles, tense, agreement, prepositions, word order). Give Pronunciation as null.
 

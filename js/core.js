@@ -47,7 +47,8 @@ window.IELTS = (function () {
 
   // ---------- Backend: Supabase (self-hosted) or claude.ai artifact capabilities ----------
   const cfg = window.APP_CONFIG || {};
-  const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey) : null;
+  // No cross-tab navigator.locks: with the default lock, a second open tab (or a hung one) can block sign-in checks for ever and leave the page blank
+const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth: { lock: async (_name, _timeout, fn) => await fn() } }) : null;
   const backendMode = sb ? "supabase" : (window.claude && window.claude.use ? "claude" : "local");
   let db = null, userId = null, authUser = null, syncState = sb ? "pending" : "local"; // pending | local | synced | signed-out | error
   const userCol = () => db.collection("data/users/" + userId);
@@ -57,13 +58,14 @@ window.IELTS = (function () {
     if (changed) { attempts.sort((x, y) => x.date - y.date); persistLocal(); }
     return new Set(remote.map(a => a.id));
   }
+  const withTimeout = (p, ms, label) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(label || "timeout")), ms))]);
   const dbReady = (async () => {
     try {
       if (backendMode === "supabase") {
-        const { data: { session } } = await sb.auth.getSession();
+        const { data: { session } } = await withTimeout(sb.auth.getSession(), 6000, "auth timeout");
         if (!session) { syncState = "signed-out"; document.dispatchEvent(new CustomEvent("attempts-changed")); return; }
         authUser = session.user; userId = session.user.id;
-        const { data: rows, error } = await sb.from("attempts").select("data").eq("user_id", userId);
+        const { data: rows, error } = await withTimeout(sb.from("attempts").select("data").eq("user_id", userId), 10000, "load timeout");
         if (error) throw error;
         const remoteIds = mergeRemote((rows || []).map(r => r.data));
         const { data: srow } = await sb.from("settings").select("data").eq("user_id", userId).maybeSingle();

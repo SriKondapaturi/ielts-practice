@@ -1,0 +1,230 @@
+/* Core: utilities, storage, timer, routing, marking helpers */
+window.IELTS = (function () {
+  const EXAM_DATE = new Date("2026-12-29T09:00:00");
+  const TARGETS = { listening: 8, reading: 8, writing: 7.5, speaking: 7.5 };
+  const CANDIDATE = "Neha Priyanka";
+
+  // ---------- DOM helpers ----------
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const el = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; };
+  function toast(msg, ms = 2600) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), ms); }
+  function modal(html, buttons) {
+    return new Promise(resolve => {
+      const root = $("#modal-root");
+      const bg = el(`<div class="modal-bg"><div class="modal">${html}<div class="acts"></div></div></div>`);
+      const acts = $(".acts", bg);
+      (buttons || [{ label: "OK", value: true, cls: "primary" }]).forEach(b => {
+        const btn = el(`<button class="btn ${b.cls || ""}">${esc(b.label)}</button>`);
+        btn.onclick = () => { root.innerHTML = ""; resolve(b.value); };
+        acts.appendChild(btn);
+      });
+      root.innerHTML = ""; root.appendChild(bg);
+    });
+  }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); toast("Copied to clipboard"); return true; }
+    catch (e) {
+      await modal(`<h2>Copy this text</h2><p class="muted">Your browser blocked automatic copying. Select all and copy manually.</p><textarea class="copybox" style="height:220px">${esc(text)}</textarea>`);
+      return false;
+    }
+  }
+  const fmtTime = s => { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60), r = s % 60; return `${m}:${String(r).padStart(2, "0")}`; };
+  const fmtDate = d => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const roman = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"];
+  const wordCount = t => (t || "").trim().split(/\s+/).filter(w => /[A-Za-z0-9]/.test(w)).length;
+
+  // ---------- Storage (localStorage + optional shared db) ----------
+  const LS_KEY = "ielts_attempts_v1", SET_KEY = "ielts_settings_v1";
+  let attempts = [];
+  try { attempts = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch (e) { attempts = []; }
+  let settings = { realisticPauses: true, ttsRate: 0.95, name: CANDIDATE, autoNext: true };
+  try { Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY) || "{}")); } catch (e) { }
+  function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) { } (async () => { try { await dbReady; if (sb && userId) await sb.from("settings").upsert({ user_id: userId, data: JSON.parse(JSON.stringify(settings)) }); else if (db && userId) await userCol().doc("settings").set({ kind: "settings", settings: JSON.parse(JSON.stringify(settings)) }); } catch (e) { } })(); }
+  function persistLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(attempts)); } catch (e) { } }
+
+  // ---------- Backend: Supabase (self-hosted) or claude.ai artifact capabilities ----------
+  const cfg = window.APP_CONFIG || {};
+  const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey) : null;
+  const backendMode = sb ? "supabase" : (window.claude && window.claude.use ? "claude" : "local");
+  let db = null, userId = null, authUser = null, syncState = sb ? "pending" : "local"; // pending | local | synced | signed-out | error
+  const userCol = () => db.collection("data/users/" + userId);
+  function mergeRemote(remote) {
+    const byId = Object.fromEntries(attempts.map(a => [a.id, a])); let changed = false;
+    remote.forEach(a => { if (a && a.id && !byId[a.id]) { attempts.push(a); changed = true; } else if (a && a.id && byId[a.id] && a.band != null && byId[a.id].band == null) { Object.assign(byId[a.id], a); changed = true; } });
+    if (changed) { attempts.sort((x, y) => x.date - y.date); persistLocal(); }
+    return new Set(remote.map(a => a.id));
+  }
+  const dbReady = (async () => {
+    try {
+      if (backendMode === "supabase") {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) { syncState = "signed-out"; document.dispatchEvent(new CustomEvent("attempts-changed")); return; }
+        authUser = session.user; userId = session.user.id;
+        const { data: rows, error } = await sb.from("attempts").select("data").eq("user_id", userId);
+        if (error) throw error;
+        const remoteIds = mergeRemote((rows || []).map(r => r.data));
+        const { data: srow } = await sb.from("settings").select("data").eq("user_id", userId).maybeSingle();
+        if (srow && srow.data) { Object.assign(settings, srow.data); saveSettingsLocal(); }
+        for (const a of attempts) if (!remoteIds.has(a.id)) { try { await sb.from("attempts").upsert({ id: a.id, user_id: userId, data: a, module: a.module, date: new Date(a.date).toISOString() }); } catch (e) { } }
+        syncState = "synced"; document.dispatchEvent(new CustomEvent("attempts-changed")); return;
+      }
+      if (backendMode !== "claude") { syncState = "local"; return; }
+      const user = await window.claude.use("user");
+      if (user) { try { userId = await user.id(); } catch (e) { } }
+      db = await window.claude.use("db");
+      if (!db || !userId) { syncState = "signed-out"; return; }
+      const snap = await Promise.race([userCol().get(), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 10000))]);
+      const remote = snap.docs.filter(d => d.exists).map(d => d.data()).filter(d => d && d.kind === "attempt");
+      const settingsDoc = snap.docs.find(d => d.id === "settings" && d.exists);
+      if (settingsDoc) { const sd = settingsDoc.data(); if (sd && sd.settings) { Object.assign(settings, sd.settings); saveSettingsLocal(); } }
+      const remoteIds = mergeRemote(remote);
+      for (const a of attempts) if (!remoteIds.has(a.id)) { try { await userCol().doc(a.id).set(a); } catch (e) { } }
+      syncState = "synced";
+      document.dispatchEvent(new CustomEvent("attempts-changed"));
+    } catch (e) { syncState = (sb || (db && userId)) ? "error" : "local"; document.dispatchEvent(new CustomEvent("attempts-changed")); }
+  })();
+  if (sb) sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN" && !userId) location.reload(); if (event === "SIGNED_OUT") location.reload(); });
+  function saveSettingsLocal() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) { } }
+  async function saveAttempt(a) {
+    a.id = a.id || uid(); a.date = a.date || Date.now(); a.kind = "attempt";
+    const i = attempts.findIndex(x => x.id === a.id); if (i >= 0) attempts[i] = a; else attempts.push(a);
+    attempts.sort((x, y) => x.date - y.date); persistLocal();
+    document.dispatchEvent(new CustomEvent("attempts-changed"));
+    try {
+      await dbReady;
+      if (sb && userId) await sb.from("attempts").upsert({ id: a.id, user_id: userId, data: JSON.parse(JSON.stringify(a)), module: a.module, date: new Date(a.date).toISOString() });
+      else if (db && userId) await userCol().doc(a.id).set(JSON.parse(JSON.stringify(a)));
+    } catch (e) { }
+    return a;
+  }
+  async function deleteAttempt(id) {
+    attempts = attempts.filter(a => a.id !== id); persistLocal();
+    document.dispatchEvent(new CustomEvent("attempts-changed"));
+    try { await dbReady; if (sb && userId) await sb.from("attempts").delete().eq("id", id).eq("user_id", userId); else if (db && userId) await userCol().doc(id).delete(); } catch (e) { }
+  }
+  const getAttempts = (module) => attempts.filter(a => !module || a.module === module);
+  const auth = {
+    enabled: !!sb,
+    user: () => authUser,
+    async signInWithEmail(email) { const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } }); if (error) throw error; },
+    async signInWithPassword(email, password) { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; },
+    async signUp(email, password) { const { error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } }); if (error) throw error; },
+    async signInWithGoogle() { const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } }); if (error) throw error; },
+    async signOut() { await sb.auth.signOut(); }
+  };
+
+  // ---------- Marking: Supabase Edge Function or claude.ai sample capability ----------
+  let sampleFn; let sampleTried = false;
+  async function getSample() {
+    if (sampleTried) return sampleFn;
+    sampleTried = true;
+    try {
+      if (sb) {
+        await dbReady;
+        if (!userId) { sampleFn = null; return null; }
+        sampleFn = async (prompt, opts) => {
+          const { data, error } = await sb.functions.invoke(cfg.markFunction || "mark", { body: { prompt } });
+          if (error) throw new Error(error.message || "marking function failed");
+          if (data && data.error) throw new Error(data.error);
+          const text = (data && data.text) || "";
+          if (opts && opts.onText) opts.onText({ text, delta: text });
+          return { text };
+        };
+        return sampleFn;
+      }
+      if (window.claude && window.claude.use) sampleFn = await window.claude.use("sample");
+    } catch (e) { sampleFn = null; }
+    return sampleFn || null;
+  }
+
+  // ---------- Band tables (Academic) ----------
+  const READING_BANDS = [[39, 9], [37, 8.5], [35, 8], [33, 7.5], [30, 7], [27, 6.5], [23, 6], [19, 5.5], [15, 5], [13, 4.5], [10, 4], [8, 3.5], [6, 3], [4, 2.5], [2, 2], [1, 1]];
+  const LISTENING_BANDS = [[39, 9], [37, 8.5], [35, 8], [32, 7.5], [30, 7], [26, 6.5], [23, 6], [18, 5.5], [16, 5], [13, 4.5], [11, 4], [8, 3.5], [6, 3], [4, 2.5], [2, 2], [1, 1]];
+  function bandFor(raw, module) { const t = module === "listening" ? LISTENING_BANDS : READING_BANDS; for (const [min, b] of t) if (raw >= min) return b; return 0; }
+  // partial test (one passage/part): scale to 40 for an indicative band
+  function indicativeBand(correct, total, module) { if (!total) return 0; return bandFor(Math.round((correct / total) * 40), module); }
+
+  // ---------- Answer normalisation ----------
+  const NUM_WORDS = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000 };
+  function norm(s) {
+    s = String(s == null ? "" : s).toLowerCase().trim();
+    s = s.replace(/[’‘]/g, "'").replace(/[“”]/g, '"');
+    s = s.replace(/[£$€%]/g, " ").replace(/(\d),(\d)/g, "$1$2");
+    s = s.replace(/[.,;:!?"()]/g, " ").replace(/\s*-\s*/g, "-").replace(/\s+/g, " ").trim();
+    s = s.replace(/^(the|a|an) /, "");
+    // number words -> digits for single tokens
+    s = s.split(" ").map(w => (NUM_WORDS[w] !== undefined ? String(NUM_WORDS[w]) : w)).join(" ");
+    return s;
+  }
+  function isCorrect(given, accepted) {
+    const g = norm(given); if (!g) return false;
+    const list = Array.isArray(accepted) ? accepted : [accepted];
+    return list.some(a => { const n = norm(a); if (n === g || n.replace(/-/g, " ") === g.replace(/-/g, " ") || n.replace(/-/g, "") === g.replace(/-/g, "")) return true; const dn = n.replace(/[\s.:-]/g, ""), dg = g.replace(/[\s.:-]/g, ""); return /^\d+$/.test(dn) && dn === dg; });
+  }
+
+  // ---------- Timer ----------
+  class Timer {
+    constructor(seconds, { onTick, onWarn, onEnd }) {
+      this.total = seconds; this.remaining = seconds; this.onTick = onTick; this.onWarn = onWarn; this.onEnd = onEnd; this.warned = {}; this._h = null; this.running = false;
+    }
+    start() { if (this.running) return; this.running = true; this._last = Date.now(); this._h = setInterval(() => this._tick(), 250); this._tick(); }
+    pause() { this.running = false; clearInterval(this._h); }
+    _tick() {
+      const now = Date.now(); const dt = (now - this._last) / 1000; this._last = now;
+      this.remaining = Math.max(0, this.remaining - dt);
+      const r = Math.ceil(this.remaining);
+      if (this.onTick) this.onTick(r);
+      [600, 300].forEach(w => { if (r <= w && !this.warned[w] && this.total > w) { this.warned[w] = true; this.onWarn && this.onWarn(w); } });
+      if (this.remaining <= 0) { this.pause(); this.onEnd && this.onEnd(); }
+    }
+    addSeconds(s) { this.remaining += s; }
+  }
+  function showTimeWarning(seconds) {
+    const m = seconds / 60; const w = el(`<div class="timewarn">${m} minutes remaining</div>`);
+    document.body.appendChild(w); setTimeout(() => w.remove(), 6000);
+    try { beep(660, 180); } catch (e) { }
+  }
+  let actx;
+  function beep(freq = 880, ms = 200) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = freq; o.connect(g); g.connect(actx.destination); g.gain.value = 0.08; o.start(); setTimeout(() => { o.stop(); }, ms);
+    } catch (e) { }
+  }
+
+  // ---------- Top bar ----------
+  function topbar({ title, timerEl, buttons }) {
+    const bar = el(`<div class="topbar"><span class="brand">IELTS</span><span class="candidate">${esc(settings.name)}</span><span class="muted" style="color:#ccc;font-size:13px">${esc(title || "")}</span><span class="spacer"></span></div>`);
+    if (timerEl) bar.appendChild(timerEl);
+    (buttons || []).forEach(b => bar.appendChild(b));
+    return bar;
+  }
+  function timerElement() { return el(`<div class="timer">--:--</div>`); }
+  function updateTimerEl(tel, r) { tel.textContent = fmtTime(r) + " left"; tel.classList.toggle("warn", r <= 600 && r > 300); tel.classList.toggle("crit", r <= 300); }
+
+  // ---------- Router ----------
+  const routes = {};
+  function route(name, fn) { routes[name] = fn; }
+  function go(name, params) { state.params = params || {}; location.hash = name; if (location.hash.replace("#", "") === name) render(); }
+  const state = { params: {} };
+  function render() {
+    const name = (location.hash || "#home").replace("#", "");
+    let fn = routes[name] || routes.home;
+    if (state.gate && name !== "signin" && state.gate(name)) fn = routes.signin;
+    window.speechSynthesis && window.speechSynthesis.cancel();
+    if (state.cleanup) { try { state.cleanup(); } catch (e) { } state.cleanup = null; }
+    const app = $("#app"); app.innerHTML = ""; app.className = "";
+    $("#modal-root").innerHTML = "";
+    window.scrollTo(0, 0);
+    fn(app, state.params);
+  }
+  window.addEventListener("hashchange", render);
+
+  // leave-guard
+  function guardLeave(active) { window.onbeforeunload = active ? (e => { e.preventDefault(); e.returnValue = ""; }) : null; }
+
+  return { EXAM_DATE, TARGETS, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, route, go, render, state, guardLeave };
+})();

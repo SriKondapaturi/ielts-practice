@@ -1,4 +1,4 @@
-/* Ascend shell: sidebar + main column for every screen outside the exam hall */
+/* Band 8 shell: sidebar + main column for every screen outside the exam hall */
 (function () {
   const { $, $$, esc, el, go, settings, saveSettings, getAttempts, modal } = IELTS;
   const SHELL = new Set(["home", "plan", "progress", "listening", "reading", "writing", "speaking", "speaking-set", "ideas", "listening-results", "reading-results", "reading-review", "writing-mark", "speaking-live-results"]);
@@ -43,7 +43,7 @@
     const [syncCls, syncTxt] = syncShort();
     const cur = section(name);
     const side = el(`<aside class="side">
-      <a class="brand" href="#home">${MARK}<span><span class="word">Ascend</span><span class="sub">IELTS Academic practice</span></span></a>
+      <a class="brand" href="#home">${MARK}<span><span class="word">Band 8</span><span class="sub">IELTS Academic practice</span></span></a>
       <button class="collapse" title="Collapse the sidebar">${ICON.chev}</button>
       <nav>${NAV.map(([r, t]) => { const m = ["listening", "reading", "writing", "speaking"].includes(r) ? latest(r) : null; return `<a class="nav ${cur === r ? "on" : ""}" href="#${r}">${ICON[r]}<span class="t">${t}</span>${m ? `<span class="k">${m}</span>` : ""}</a>`; }).join("")}</nav>
       <div class="grow"></div>
@@ -55,7 +55,7 @@
     $("#bl-settings", side).onclick = openSettings;
     const ab = $("#bl-auth", side); if (ab) ab.onclick = authAction;
     const main = el(`<div class="main"></div>`);
-    const mh = el(`<div class="mobilehead"><a class="brand" href="#home">${MARK}Ascend</a><div class="right"><button class="btn small" id="mh-settings">Settings</button>${IELTS.auth.enabled ? `<button class="btn small" id="mh-auth">${IELTS.userId ? "Sign out" : "Sign in"}</button>` : ""}</div></div>`);
+    const mh = el(`<div class="mobilehead"><a class="brand" href="#home">${MARK}Band 8</a><div class="right"><button class="btn small" id="mh-settings">Settings</button>${IELTS.auth.enabled ? `<button class="btn small" id="mh-auth">${IELTS.userId ? "Sign out" : "Sign in"}</button>` : ""}</div></div>`);
     $("#mh-settings", mh).onclick = openSettings; const mab = $("#mh-auth", mh); if (mab) mab.onclick = authAction;
     main.appendChild(mh);
     const mob = el(`<nav class="mobilebar">${[["home", "Today"], ["listening", "Listen"], ["reading", "Read"], ["writing", "Write"], ["speaking", "Speak"], ["progress", "Progress"]].map(([r, t]) => `<a class="${cur === r ? "on" : ""}" href="#${r}">${ICON[r]}${t}</a>`).join("")}</nav>`);

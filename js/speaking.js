@@ -154,6 +154,7 @@ Begin the test now.`;
     let rec = null, chunks = [], stream = null;
     if (canRecord) { try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); rec = new MediaRecorder(stream); rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); }; rec.start(1000); } catch (e) { rec = null; toast("Microphone not available; the test runs without recording."); } }
 
+    Speech.onStall = (resume) => { modal(`<h2>No sound is coming out</h2><p>The examiner's voice did not start. Close other tabs of this site, make sure this tab is not muted, or type <b>chrome://restart</b> in the address bar and come back. The test continues from this question.</p>`, [{ label: "Try again", value: true, cls: "primary" }]).then(resume); };
     const say = async (text) => { if (abortAll) return; exsay.textContent = text; $("#examiner", body).classList.add("talking"); await Speech.speak(text, examiner); $("#examiner", body).classList.remove("talking"); };
     const wait = ms => new Promise(r => { const h = setTimeout(() => r("time"), ms); nextResolver = v => { clearTimeout(h); r(v); }; });
 
@@ -187,7 +188,7 @@ Begin the test now.`;
     function startPartClock(seconds, label) { clearInterval(partTimer); let rem = seconds; const paint = () => { tel.textContent = `${label} · ${fmtTime(rem)}`; tel.classList.toggle("crit", rem <= 30); partclock.textContent = `${fmtTime(rem)} left in this part`; }; paint(); partTimer = setInterval(() => { rem--; paint(); if (rem <= 0) clearInterval(partTimer); }, 1000); return () => rem; }
 
     stopBtn.onclick = async () => { if (await modal(`<h2>End the Speaking test now?</h2><p>Your answers so far will be kept and marked.</p>`, [{ label: "Continue", value: false }, { label: "End test", value: true, cls: "primary" }])) { abortAll = true; Speech.stop(); if (nextResolver) nextResolver("abort"); } };
-    state.cleanup = () => { abortAll = true; clearInterval(partTimer); Speech.stop(); if (stream) stream.getTracks().forEach(t => t.stop()); IELTS.guardLeave(false); };
+    state.cleanup = () => { abortAll = true; clearInterval(partTimer); Speech.stop(); Speech.onStall = null; if (stream) stream.getTracks().forEach(t => t.stop()); IELTS.guardLeave(false); };
 
     async function run() {
       // Introduction

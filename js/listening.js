@@ -66,18 +66,31 @@
         .replace(/\b(\d+)\.(\d\d)\b/g, (m, a, b) => (b === "00" ? `${a} o'clock` : `${a} ${b}`))
         .replace(/£(\d+)/g, "$1 pounds");
     },
+    stalled: false, onStall: null, started: 0,
     speak(text, cfg, volume) {
       return new Promise(resolve => {
         if (!("speechSynthesis" in window)) return setTimeout(resolve, 60 * text.split(" ").length);
         const chunks = text.length > 220 ? text.match(/[^.!?]+[.!?]+["']?\s*|[^.!?]+$/g) || [text] : [text];
         let i = 0;
-        const next = () => {
+        const next = (retry) => {
           if (i >= chunks.length) return resolve();
-          const u = new SpeechSynthesisUtterance(this.prep(chunks[i++]));
+          const idx = retry ? i - 1 : i++;
+          const u = new SpeechSynthesisUtterance(this.prep(chunks[idx]));
           if (cfg && cfg.voice) u.voice = cfg.voice; u.lang = (cfg && cfg.voice && cfg.voice.lang) || "en-GB"; u.pitch = cfg ? cfg.pitch : 1; u.rate = cfg ? cfg.rate : 0.95; u.volume = volume == null ? 1 : volume;
-          let done = false; const finish = () => { if (done) return; done = true; clearTimeout(wd); next(); };
+          let done = false, started = false;
+          const finish = () => { if (done) return; done = true; clearTimeout(wd); clearTimeout(sw); next(); };
+          // If Chrome's shared speech engine never starts this utterance (stuck item from another tab, muted engine), unjam once, then warn instead of racing on silently
+          const sw = setTimeout(() => {
+            if (started || done || !this.voices.length) return;
+            try { speechSynthesis.cancel(); speechSynthesis.resume(); } catch (e) { }
+            if (!retry) { done = true; clearTimeout(wd); return setTimeout(() => next(true), 300); }
+            this.stalled = true; done = true; clearTimeout(wd);
+            const resume = () => { this.stalled = false; i = idx; next(); };
+            if (this.onStall) this.onStall(resume); else resume();
+          }, 3500);
           const wd = setTimeout(finish, 2000 + u.text.split(" ").length * 700 / (u.rate || 1));
-          u.onend = finish; u.onerror = finish;
+          u.onstart = () => { started = true; this.started++; this.stalled = false; };
+          u.onend = finish; u.onerror = e => { if (e && e.error === "interrupted" && !started && !done) return; finish(); };
           speechSynthesis.speak(u);
         };
         next();
@@ -107,7 +120,7 @@
       const acc = Speech.accentsAvailable().map(a => Speech.ACCENT_NAME[a]);
       $("#voiceinfo", wrap).textContent = en.length ? `${en.length} English voice${en.length > 1 ? "s" : ""} available (${en.filter(x => Speech.classify(x) === "female").length} female, ${en.filter(x => Speech.classify(x) === "male").length} male). Accents: ${acc.join(", ") || "English"}. Speakers in a part are given different accents, as in the real recordings.` : "No speech voices found in this browser. Use the 'Read with Claude' option inside a test, or try Chrome or Edge.";
     });
-    $("#voicetest", wrap).onclick = async () => { await Speech.init(); const sp = { W: { name: "Speaker 1", gender: "female" }, M: { name: "Speaker 2", gender: "male" }, X: { name: "Speaker 3", gender: "female" } }; const a = Speech.assign(sp); $("#voiceinfo", wrap).textContent = "Voices for this test: " + Speech.describe(a, sp); await Speech.speak("Hello, this is the first speaker. My name is S-M-I-T-H.", a.W); await Speech.speak("And this is the second speaker. My number is 0-7-7-0-0, 9-0-0, 1-2-3.", a.M); await Speech.speak("And I am the third speaker. The meeting is at 9.30 on Tuesday.", a.X); };
+    $("#voicetest", wrap).onclick = async () => { await Speech.init(); Speech.onStall = (resume) => { $("#voiceinfo", wrap).textContent = "No sound came out. Close other tabs of this site, check the tab is not muted, or type chrome://restart in the address bar and try again."; Speech.onStall = null; resume(); }; const sp = { W: { name: "Speaker 1", gender: "female" }, M: { name: "Speaker 2", gender: "male" }, X: { name: "Speaker 3", gender: "female" } }; const a = Speech.assign(sp); $("#voiceinfo", wrap).textContent = "Voices for this test: " + Speech.describe(a, sp); await Speech.speak("Hello, this is the first speaker. My name is S-M-I-T-H.", a.W); await Speech.speak("And this is the second speaker. My number is 0-7-7-0-0, 9-0-0, 1-2-3.", a.M); await Speech.speak("And I am the third speaker. The meeting is at 9.30 on Tuesday.", a.X); };
     const done = IELTS.getAttempts("listening");
     tests().forEach(t => {
       const prev = done.filter(a => a.testId === t.id && a.scope === "full"); const last = prev[prev.length - 1];
@@ -208,6 +221,10 @@
     const say = async (text, cfg) => { if (abort.signal.aborted) return; await waitIfPaused(); icon.classList.add("on"); await Speech.speak(text, cfg, volume); icon.classList.remove("on"); };
     const pause = async ms => { if (abort.signal.aborted) return; await sleep(ms, abort.signal); };
     let narrator = Speech.assign({}).__narrator;
+    Speech.onStall = (resume) => {
+      status.textContent = "No sound is coming out";
+      modal(`<h2>No sound is coming out</h2><p>The browser's speech engine did not start speaking. This usually means another tab of this site is holding it, the tab is muted, or Chrome's speech engine is stuck.</p><ol style="margin-left:18px"><li>Close every other tab of this site.</li><li>Right-click this tab: if it says <b>Unmute site</b>, click it; check the Windows volume mixer for Chrome.</li><li>If it is still silent, close all tabs of the site, type <b>chrome://restart</b> in the address bar, then come back.</li></ol><p class="muted">The recording is paused and will continue from this sentence.</p>`, [{ label: "Try again", value: true, cls: "primary" }]).then(resume);
+    };
 
     if (single) {
       $("#pause", player).onclick = () => { paused = !paused; $("#pause", player).textContent = paused ? "Resume" : "Pause"; if (paused) { try { speechSynthesis.pause(); } catch (e) { } } else { try { speechSynthesis.resume(); } catch (e) { } if (pauseResolver) pauseResolver(); } };
@@ -262,7 +279,7 @@
       if (ok) finish(false);
     };
     guardLeave(true);
-    state.cleanup = () => { abort.abort(); Speech.stop(); guardLeave(false); if (state.cleanup2) state.cleanup2(); };
+    state.cleanup = () => { abort.abort(); Speech.stop(); Speech.onStall = null; guardLeave(false); if (state.cleanup2) state.cleanup2(); };
 
     async function finish(auto) {
       if (finished) return; finished = true; abort.abort(); Speech.stop(); guardLeave(false); if (state.cleanup2) state.cleanup2();

@@ -70,6 +70,9 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
         const remoteIds = mergeRemote((rows || []).map(r => r.data));
         const { data: srow } = await sb.from("settings").select("data").eq("user_id", userId).maybeSingle();
         if (srow && srow.data) { Object.assign(settings, srow.data); saveSettingsLocal(); }
+        // first sign-in of a new account: take the name given at sign-up (pending locally or stored with the account) and save it to the account's settings
+        if (!srow || !srow.data || !srow.data.name) { const pending = localStorage.getItem("ielts_pending_name") || (session.user.user_metadata && session.user.user_metadata.name) || ""; if (pending) { settings.name = pending; saveSettingsLocal(); try { await sb.from("settings").upsert({ user_id: userId, data: JSON.parse(JSON.stringify(settings)) }); } catch (e) { } } }
+        localStorage.removeItem("ielts_pending_name");
         for (const a of attempts) if (!remoteIds.has(a.id)) { try { await sb.from("attempts").upsert({ id: a.id, user_id: userId, data: a, module: a.module, date: new Date(a.date).toISOString() }); } catch (e) { } }
         syncState = "synced"; document.dispatchEvent(new CustomEvent("attempts-changed")); return;
       }
@@ -120,7 +123,7 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
     user: () => authUser,
     async signInWithEmail(email) { const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } }); if (error) throw error; },
     async signInWithPassword(email, password) { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; },
-    async signUp(email, password) { const { error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } }); if (error) throw error; },
+    async signUp(email, password, name) { const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname, data: { name: name || "" } } }); if (error) throw error; return data; },
     async signInWithGoogle() { const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } }); if (error) throw error; },
     async signOut() { await sb.auth.signOut(); }
   };

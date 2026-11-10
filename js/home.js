@@ -29,13 +29,14 @@
       <div id="status" class="muted" style="min-height:20px"></div>
       <label style="display:block;margin:10px 0 6px">Email<br><input id="em" type="email" autocomplete="email" style="width:100%;padding:8px;font-size:15px"></label>
       <label style="display:block;margin:6px 0 10px">Password<br><input id="pw" type="password" autocomplete="current-password" style="width:100%;padding:8px;font-size:15px"></label>
+      <label style="display:block;margin:6px 0 10px">Your name <span class="muted">(for a new account; shown in the top bar, can be changed later in Settings)</span><br><input id="nm" type="text" autocomplete="name" placeholder="e.g. Neha Priyanka" style="width:100%;padding:8px;font-size:15px"></label>
       <div class="row"><button class="btn primary" id="in">Sign in</button><button class="btn" id="up">Create account</button><button class="btn" id="link">Email me a sign-in link instead</button></div>
       <p class="muted" style="margin-top:16px"><button class="btn small" id="skip">Continue without an account</button> &nbsp; progress then stays in this browser only.</p>
     </div></div>`);
     const st = $("#status", wrap); const say = (m, bad) => { st.textContent = m; st.style.color = bad ? "var(--bad)" : "var(--ok)"; };
     const creds = () => [$("#em", wrap).value.trim(), $("#pw", wrap).value];
     $("#in", wrap).onclick = async () => { const [e, p] = creds(); if (!e || !p) return say("Enter your email and password.", true); try { say("Signing in…"); await IELTS.auth.signInWithPassword(e, p); } catch (err) { say(err.message || "Sign-in failed", true); } };
-    $("#up", wrap).onclick = async () => { const [e, p] = creds(); if (!e || p.length < 8) return say("Enter your email and a password of at least 8 characters.", true); try { say("Creating account…"); await IELTS.auth.signUp(e, p); say("Account created. If a confirmation email arrives, open the link, then sign in."); } catch (err) { say(err.message || "Could not create the account", true); } };
+    $("#up", wrap).onclick = async () => { const [e, p] = creds(); const nm = $("#nm", wrap).value.trim(); if (!e || p.length < 8) return say("Enter your email and a password of at least 8 characters.", true); if (!nm) return say("Enter your name so the test screens can show it.", true); try { say("Creating account…"); const r = await IELTS.auth.signUp(e, p, nm); settings.name = nm; localStorage.setItem("ielts_pending_name", nm); saveSettings(); say(r && r.session ? "Account created. Signing you in…" : "Account created. If a confirmation email arrives, open the link, then sign in with your email and password."); } catch (err) { say(err.message || "Could not create the account", true); } };
     $("#link", wrap).onclick = async () => { const [e] = creds(); if (!e) return say("Enter your email first.", true); try { await IELTS.auth.signInWithEmail(e); say("Check your email for the sign-in link."); } catch (err) { say(err.message || "Could not send the link", true); } };
     $("#skip", wrap).onclick = () => { sessionStorage.setItem(SKIP_KEY, "1"); go("home"); };
     app.appendChild(wrap);

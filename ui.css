@@ -8,9 +8,9 @@
   --bl-ink-2: #3D4A63;
   --bl-ink-3: #6B778C;
   --bl-hair: #DCE1E8;
-  --bl-teal: #C8364B;
-  --bl-teal-ink: #A1283A;
-  --bl-teal-soft: #FBE8EB;
+  --bl-teal: #3B3FBF;
+  --bl-teal-ink: #2E3199;
+  --bl-teal-soft: #E9EAF9;
   --bl-saffron: #E09F3E;
   --bl-saffron-soft: #FBF0DC;
   --bl-radius: 14px;
@@ -97,7 +97,7 @@
 .shell .tag.diff-standard { background: #EEF1F5; color: #3D4A63; border-color: #DCE1E8; }
 .shell .tag.diff-harder { background: #FBE9E7; color: #9A2A1F; border-color: #F3CDC8; }
 .shell input[type=text], .shell input[type=email], .shell input[type=password], .shell input[type=number], .shell textarea, .shell select { font-family: var(--bl-sans); border: 1px solid var(--bl-hair); border-radius: var(--bl-radius-sm); padding: 10px 12px; background: #fff; color: var(--bl-ink); }
-.shell input:focus, .shell textarea:focus { border-color: var(--bl-teal); box-shadow: 0 0 0 3px rgba(200, 54, 75, .14); outline: none; }
+.shell input:focus, .shell textarea:focus { border-color: var(--bl-teal); box-shadow: 0 0 0 3px rgba(59, 63, 191, .14); outline: none; }
 .shell table.rtable { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; }
 .shell table.rtable th { text-align: left; font-weight: 600; color: var(--bl-ink-3); font-size: 12.5px; padding: 8px 10px; border-bottom: 1px solid var(--bl-hair); }
 .shell table.rtable td { padding: 9px 10px; border-bottom: 1px solid var(--bl-hair); vertical-align: top; }
@@ -135,7 +135,7 @@
 .bandline .lane { position: absolute; left: 0; right: 0; height: 44px; }
 .bandline .lane .name { position: absolute; left: 0; top: 50%; transform: translateY(-50%); font-size: 13.5px; font-weight: 600; color: var(--bl-ink-2); background: var(--bl-surface); padding-right: 10px; }
 .bandline .lane .rail { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--bl-hair); }
-.bandline .lane .fill { position: absolute; top: 50%; height: 6px; transform: translateY(-50%); border-radius: 3px; background: linear-gradient(90deg, rgba(200, 54, 75, .25), var(--bl-teal)); }
+.bandline .lane .fill { position: absolute; top: 50%; height: 6px; transform: translateY(-50%); border-radius: 3px; background: linear-gradient(90deg, rgba(59, 63, 191, .25), var(--bl-teal)); }
 .bandline .lane .dot { position: absolute; top: 50%; width: 18px; height: 18px; border-radius: 50%; background: var(--bl-teal); border: 3px solid #fff; box-shadow: 0 0 0 1px var(--bl-teal); transform: translate(-50%, -50%); }
 .bandline .lane .dot.none { background: #fff; box-shadow: 0 0 0 1px #B9C2CF; }
 .bandline .lane .goal { position: absolute; top: 50%; width: 3px; height: 22px; background: var(--bl-saffron); transform: translate(-50%, -50%); border-radius: 2px; }
@@ -216,7 +216,7 @@
 .auth .seg button.on { background: #fff; color: var(--bl-ink); box-shadow: 0 1px 3px rgba(20, 33, 61, .12); }
 .auth label { display: block; font-size: 13px; font-weight: 500; color: var(--bl-ink-2); margin: 12px 0 6px; }
 .auth input { width: 100%; font-family: var(--bl-sans); border: 1px solid var(--bl-hair); border-radius: 10px; padding: 11px 12px; font-size: 15px; background: #fff; color: var(--bl-ink); }
-.auth input:focus { border-color: var(--bl-teal); box-shadow: 0 0 0 3px rgba(200, 54, 75, .14); outline: none; }
+.auth input:focus { border-color: var(--bl-teal); box-shadow: 0 0 0 3px rgba(59, 63, 191, .14); outline: none; }
 .auth .btn { width: 100%; margin-top: 18px; font-family: var(--bl-sans); border-radius: 999px; border: 1px solid var(--bl-teal); background: var(--bl-teal); color: #fff; padding: 12px; font-size: 15px; font-weight: 600; }
 .auth .btn:hover { background: var(--bl-teal-ink); }
 .auth .btn.quiet { background: transparent; color: var(--bl-ink-2); border-color: transparent; font-weight: 500; margin-top: 8px; padding: 8px; }

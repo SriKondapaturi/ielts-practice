@@ -44,7 +44,7 @@ window.Questions = (function () {
         break;
       }
       case "headings": {
-        const list = `<div class="headings-list"><span class="ot">List of Headings</span>${g.headings.map((h, i) => `<div><b>${roman[i]}</b>&nbsp; ${esc(h)}</div>`).join("")}</div>`;
+        const list = `<div class="headings-list dragsrc"><span class="ot">List of Headings</span>${g.headings.map((h, i) => `<div class="dragopt" draggable="true" data-letter="${roman[i]}" title="Drag onto a paragraph, or use the list"><b>${roman[i]}</b>&nbsp; ${esc(h)}</div>`).join("")}</div>`;
         const ex = g.example ? `<div class="example"><b>Example</b> &nbsp; Paragraph ${esc(g.example.paragraph)} &nbsp; <b>${esc(g.example.answer)}</b></div>` : "";
         const letters = g.headings.map((h, i) => roman[i]);
         body = list + ex + g.questions.map(q => `<div class="q" data-q="${q.n}"><span class="qn">${q.n}</span><div class="qbody">Paragraph ${esc(q.paragraph)} &nbsp; ${gapHtml(q.n, ctx, { letters })}</div></div>`).join("");
@@ -57,7 +57,7 @@ window.Questions = (function () {
       }
       case "matchfeatures": case "endings": {
         const letters = g.options.map(o => o.letter);
-        const box = `<div class="optbox"><span class="ot">${esc(g.optionsTitle || (g.type === "endings" ? "" : "Options"))}</span>${g.options.map(o => `<div><b>${esc(o.letter)}</b>&nbsp; ${esc(o.text)}</div>`).join("")}</div>`;
+        const box = `<div class="optbox dragsrc"><span class="ot">${esc(g.optionsTitle || (g.type === "endings" ? "" : "Options"))}</span>${g.options.map(o => `<div class="dragopt" draggable="true" data-letter="${esc(o.letter)}"><b>${esc(o.letter)}</b>&nbsp; ${esc(o.text)}</div>`).join("")}</div>`;
         const qs = g.questions.map(q => `<div class="q" data-q="${q.n}"><span class="qn">${q.n}</span><div class="qbody">${esc(q.text)} &nbsp; ${gapHtml(q.n, ctx, { letters })}</div></div>`).join("");
         body = g.type === "endings" ? qs + box : box + qs;
         break;
@@ -82,7 +82,7 @@ window.Questions = (function () {
         break;
       case "summary-box": {
         const letters = g.options.map(o => o.letter);
-        body = `<div class="sumbox">${title ? `<span class="st">${esc(title)}</span>` : ""}${fillGaps(g.text, ctx, { letters })}</div><div class="optbox">${g.options.map(o => `<div><b>${esc(o.letter)}</b>&nbsp; ${esc(o.text)}</div>`).join("")}</div>`;
+        body = `<div class="sumbox">${title ? `<span class="st">${esc(title)}</span>` : ""}${fillGaps(g.text, ctx, { letters })}</div><div class="optbox dragsrc">${g.options.map(o => `<div class="dragopt" draggable="true" data-letter="${esc(o.letter)}"><b>${esc(o.letter)}</b>&nbsp; ${esc(o.text)}</div>`).join("")}</div>`;
         break;
       }
       case "diagram": {
@@ -104,10 +104,32 @@ window.Questions = (function () {
       ctx.onChange(key, chosen, g.range); ctx.onFocus && ctx.onFocus(g.range[0]);
     }));
     $$(".q", node).forEach(q => q.addEventListener("click", () => ctx.onFocus && ctx.onFocus(+q.dataset.q)));
+    wireDragDrop(node, ctx);
     if (ctx.review) decorateReview(node, g, ctx);
     return node;
   }
 
+  // Drag-and-drop as in the computer-delivered test: drag an option onto a question; the dropdown stays as a keyboard/touch alternative
+  function wireDragDrop(node, ctx) {
+    if (ctx.review) return;
+    const opts = $$(".dragopt", node); if (!opts.length) return;
+    opts.forEach(o => {
+      o.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", o.dataset.letter); e.dataTransfer.effectAllowed = "copy"; o.classList.add("dragging"); });
+      o.addEventListener("dragend", () => o.classList.remove("dragging"));
+    });
+    const zones = $$(".gap select", node).map(sel => sel.closest(".q") || sel.closest(".gap"));
+    zones.forEach(z => {
+      if (!z || z.dataset.dz) return; z.dataset.dz = "1";
+      z.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; z.classList.add("dropover"); });
+      z.addEventListener("dragleave", () => z.classList.remove("dropover"));
+      z.addEventListener("drop", e => {
+        e.preventDefault(); z.classList.remove("dropover");
+        const L = e.dataTransfer.getData("text/plain"); const sel = z.querySelector("select") || z.closest(".gap, .q").querySelector("select"); if (!sel || !L) return;
+        if (![...sel.options].some(op => op.value === L)) return;
+        sel.value = L; sel.dispatchEvent(new Event("change")); z.classList.add("dropped"); setTimeout(() => z.classList.remove("dropped"), 600);
+      });
+    });
+  }
   function lettersFromRange(r) { const [a, b] = r.split("-"); const out = []; for (let c = a.charCodeAt(0); c <= b.charCodeAt(0); c++) out.push(String.fromCharCode(c)); return out; }
 
   // ---------- marking ----------

@@ -203,6 +203,30 @@ window.IELTS = (function () {
     return bar;
   }
   function timerElement() { return el(`<div class="timer">--:--</div>`); }
+  // Display settings as offered in the computer-delivered test (text size, colour scheme)
+  const TEXT_SIZES = [["regular", "Regular"], ["large", "Large"], ["xl", "Extra large"]];
+  const SCHEMES = [["std", "Black on white (standard)"], ["wb", "White on black"], ["yb", "Yellow on black"], ["by", "Black on yellow"]];
+  function applyDisplay() {
+    const d = settings.display || {}; const h = document.documentElement;
+    h.classList.remove("ts-large", "ts-xl", "cs-wb", "cs-yb", "cs-by");
+    if (d.size === "large") h.classList.add("ts-large"); if (d.size === "xl") h.classList.add("ts-xl");
+    if (d.scheme && d.scheme !== "std") h.classList.add("cs-" + d.scheme);
+  }
+  function displayButton() {
+    const b = el(`<button class="tbtn" title="Text size and colours">Settings</button>`);
+    b.onclick = () => {
+      const d = settings.display || { size: "regular", scheme: "std" }; const root = $("#modal-root");
+      const f = el(`<div class="modal-bg"><div class="modal"><h2>Settings</h2><p class="muted">These options are also available in the real computer-delivered test.</p>
+        <h3>Text size</h3><div class="row">${TEXT_SIZES.map(([k, l]) => `<label><input type="radio" name="ts" value="${k}" ${d.size === k || (!d.size && k === "regular") ? "checked" : ""}> ${l}</label>`).join("")}</div>
+        <h3 style="margin-top:12px">Colours</h3><div>${SCHEMES.map(([k, l]) => `<label style="display:block;margin:4px 0"><input type="radio" name="cs" value="${k}" ${d.scheme === k || (!d.scheme && k === "std") ? "checked" : ""}> ${l}</label>`).join("")}</div>
+        <div class="acts"><button class="btn primary" id="ok">Done</button></div></div></div>`);
+      f.addEventListener("change", () => { settings.display = { size: $("input[name=ts]:checked", f).value, scheme: $("input[name=cs]:checked", f).value }; applyDisplay(); saveSettings(); });
+      $("#ok", f).onclick = () => root.innerHTML = "";
+      root.innerHTML = ""; root.appendChild(f);
+    };
+    return b;
+  }
+  applyDisplay();
   function updateTimerEl(tel, r) { tel.textContent = fmtTime(r) + " left"; tel.classList.toggle("warn", r <= 600 && r > 300); tel.classList.toggle("crit", r <= 300); }
 
   // ---------- Router ----------
@@ -226,5 +250,5 @@ window.IELTS = (function () {
   // leave-guard
   function guardLeave(active) { window.onbeforeunload = active ? (e => { e.preventDefault(); e.returnValue = ""; }) : null; }
 
-  return { EXAM_DATE, TARGETS, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, route, go, render, state, guardLeave };
+  return { EXAM_DATE, TARGETS, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, displayButton, applyDisplay, route, go, render, state, guardLeave };
 })();

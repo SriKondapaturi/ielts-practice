@@ -68,7 +68,7 @@
     const texts = { task1: "", task2: "" }; let curKey = taskKeys[0]; let finished = false;
     app.className = "exam writing";
     const tel = timerElement(); const finishBtn = el(`<button class="tbtn">Finish</button>`); const hideBtn = el(`<button class="tbtn">Hide</button>`);
-    app.appendChild(topbar({ title: t.title, timerEl: tel, buttons: [hideBtn, finishBtn] }));
+    app.appendChild(topbar({ title: t.title, timerEl: tel, buttons: [IELTS.displayButton(), hideBtn, finishBtn] }));
     hideBtn.onclick = () => { tel.style.visibility = tel.style.visibility === "hidden" ? "visible" : "hidden"; hideBtn.textContent = tel.style.visibility === "hidden" ? "Show" : "Hide"; };
     const partbar = el(`<div class="partbar"><div class="wtabs">${taskKeys.map(k => `<button data-k="${k}">${k === "task1" ? "Task 1" : "Task 2"}</button>`).join("")}</div><span class="pb-text muted"></span></div>`);
     app.appendChild(partbar);

@@ -79,7 +79,7 @@
     const helpBtn = el(`<button class="tbtn">Help</button>`);
     const hideBtn = el(`<button class="tbtn">Hide</button>`);
     const finishBtn = el(`<button class="tbtn">Finish</button>`);
-    app.appendChild(topbar({ title: `${t.title}${single ? " · Passage " + cur.number : ""}`, timerEl: tel, buttons: [hideBtn, helpBtn, finishBtn] }));
+    app.appendChild(topbar({ title: `${t.title}${single ? " · Passage " + cur.number : ""}`, timerEl: tel, buttons: [IELTS.displayButton(), hideBtn, helpBtn, finishBtn] }));
     const partbar = el(`<div class="partbar"><b></b><span class="pb-text"></span><span class="spacer" style="flex:1"></span><span class="mobile-switch"><button class="btn small" data-m="passage">Passage</button><button class="btn small" data-m="questions">Questions</button></span></div>`);
     app.appendChild(partbar);
     const body = el(`<div class="body"><div class="pane left"><div class="passage"></div></div><div class="splitter"></div><div class="pane right"></div></div>`);
@@ -91,7 +91,7 @@
 
     // hide timer toggle (as in CD-IELTS)
     hideBtn.onclick = () => { tel.style.visibility = tel.style.visibility === "hidden" ? "visible" : "hidden"; hideBtn.textContent = tel.style.visibility === "hidden" ? "Show" : "Hide"; };
-    helpBtn.onclick = () => modal(`<h2>Help</h2><ul><li>Select any text in the passage to <b>highlight</b> it or add a <b>note</b>. Click a highlight to remove it.</li><li>Use the number buttons at the bottom to move between questions. Black means answered. A yellow border means you flagged it for review.</li><li>Tick <b>Review</b> to flag the current question.</li><li>Drag the grey bar between the passage and the questions to resize them.</li><li>The clock turns orange at 10 minutes and red at 5 minutes. Answers are submitted automatically at zero.</li></ul>`);
+    helpBtn.onclick = () => modal(`<h2>Help</h2><ul><li>Select any text in the passage to <b>highlight</b> it or add a <b>note</b>. Click a highlight to remove it.</li><li>Use the number buttons at the bottom to move between questions. Black means answered. A yellow border means you flagged it for review.</li><li>For headings, sentence endings and word-list summaries, <b>drag</b> an option onto the question, or pick it from the list.</li><li>Tick <b>Review</b> to flag the current question.</li><li><b>Settings</b> changes the text size and colours, as in the real test.</li><li>Drag the grey bar between the passage and the questions to resize them.</li><li>The clock turns orange at 10 minutes and red at 5 minutes. Answers are submitted automatically at zero.</li></ul>`);
 
     // splitter
     const left = $(".pane.left", body), right = $(".pane.right", body), split = $(".splitter", body);

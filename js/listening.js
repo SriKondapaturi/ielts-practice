@@ -21,25 +21,44 @@
       const m = /male|man\b|david|george|daniel|alex|fred|oliver|james|thomas|ryan|guy|brian|christopher|eric|andrew|arthur|alfie|elliot|ethan|noah|oliver|william|google uk english male/.test(n);
       return f && !m ? "female" : m ? "male" : "unknown";
     },
-    pool(gender) {
+    // Accent mix of the real recordings: mostly British, then Australian / New Zealand, North American, Irish, occasionally others.
+    ACCENTS: ["en-GB", "en-AU", "en-US", "en-IE", "en-NZ", "en-CA", "en-IN", "en-ZA"],
+    ACCENT_NAME: { "en-GB": "British", "en-AU": "Australian", "en-US": "American", "en-IE": "Irish", "en-NZ": "New Zealand", "en-CA": "Canadian", "en-IN": "Indian", "en-ZA": "South African" },
+    quality(v) { return /natural|online|neural|premium|enhanced/i.test(v.name) ? 0 : /google|microsoft/i.test(v.name) ? 1 : /apple|samantha|daniel|karen|moira|tessa|rishi|fiona/i.test(v.name) ? 2 : 3; },
+    locale(v) { const m = String(v.lang || "").replace("_", "-").match(/^en-([A-Za-z]{2})/); return m ? "en-" + m[1].toUpperCase() : "en"; },
+    accentsAvailable() { const set = new Set(this.voices.filter(v => /^en/i.test(v.lang)).map(v => this.locale(v))); return this.ACCENTS.filter(a => set.has(a)); },
+    pool(gender, accent) {
       const en = this.voices.filter(v => /^en/i.test(v.lang));
-      const rank = v => (/en-GB/i.test(v.lang) ? 0 : /en-AU|en-IE|en-NZ/i.test(v.lang) ? 1 : 2) + (/google|microsoft|natural|online/i.test(v.name) ? 0 : 0.5);
+      const rank = v => (accent ? (this.locale(v) === accent ? 0 : 3) : (/en-GB/i.test(v.lang) ? 0 : 1)) + this.quality(v) / 10;
       const list = en.filter(v => this.classify(v) === gender).sort((a, b) => rank(a) - rank(b));
       if (list.length) return list;
-      return en.filter(v => this.classify(v) === "unknown").sort((a, b) => rank(a) - rank(b)).concat(en);
+      return en.filter(v => this.classify(v) === "unknown").sort((a, b) => rank(a) - rank(b)).concat(en.sort((a, b) => rank(a) - rank(b)));
     },
     assign(speakers) {
-      // returns map key -> {voice, pitch, rate}
+      // returns map key -> {voice, pitch, rate, accent}; each speaker gets a different voice and, where the device allows, a different accent
       const used = new Set(); const out = {};
-      const narratorPool = this.pool("female").concat(this.pool("male"));
-      out.__narrator = { voice: narratorPool.find(v => /en-GB/i.test(v.lang)) || narratorPool[0] || null, pitch: 1, rate: settings.ttsRate };
+      const avail = this.accentsAvailable();
+      const narratorPool = this.pool("female", "en-GB").concat(this.pool("male", "en-GB"));
+      out.__narrator = { voice: narratorPool[0] || null, pitch: 1, rate: settings.ttsRate, accent: "en-GB" };
+      if (out.__narrator.voice) used.add(out.__narrator.voice.name);
+      let ai = 0;
       Object.entries(speakers || {}).forEach(([k, sp], i) => {
-        const pool = this.pool(sp.gender || "female");
-        let voice = pool.find(v => !used.has(v.name)) || pool[0] || null; if (voice) used.add(voice.name);
+        const gender = sp.gender || "female";
+        // preferred accent: author override, else cycle through the accents this device has
+        let accent = sp.accent && avail.includes(sp.accent) ? sp.accent : null;
+        if (!accent) { for (let tries = 0; tries < avail.length && !accent; tries++) { const cand = avail[ai % avail.length]; ai++; if (this.pool(gender, cand).some(v => this.locale(v) === cand && !used.has(v.name))) accent = cand; } }
+        const pool = this.pool(gender, accent || undefined);
+        let voice = pool.find(v => !used.has(v.name) && (!accent || this.locale(v) === accent)) || pool.find(v => !used.has(v.name)) || pool[0] || null;
+        if (voice) used.add(voice.name);
         const dup = Object.values(out).filter(o => o.voice && voice && o.voice.name === voice.name).length;
-        out[k] = { voice, pitch: dup ? (dup % 2 ? 0.85 : 1.15) : (sp.gender === "male" ? 0.95 : 1.05), rate: settings.ttsRate };
+        // natural variation: each speaker has a slightly different pace and pitch
+        const rateJitter = [0, 0.04, -0.03, 0.02, -0.05][i % 5];
+        out[k] = { voice, pitch: dup ? (dup % 2 ? 0.85 : 1.15) : (gender === "male" ? 0.93 + 0.04 * (i % 2) : 1.02 + 0.05 * (i % 2)), rate: Math.max(0.8, Math.min(1.15, settings.ttsRate + rateJitter)), accent: voice ? this.locale(voice) : null };
       });
       return out;
+    },
+    describe(assignment, speakers) {
+      return Object.entries(speakers || {}).map(([k, sp]) => { const a = assignment[k] || {}; return `${sp.name || k}: ${this.ACCENT_NAME[a.accent] || "English"}${a.voice ? " (" + a.voice.name.replace(/Microsoft |Google /, "").replace(/ - .*$/, "") + ")" : ""}`; }).join(" · ");
     },
     prep(text) {
       // spell letter/digit groups like O-K-O-N or 0-7-7-2-4 as separate characters
@@ -85,9 +104,10 @@
     $("#rate", wrap).oninput = e => { settings.ttsRate = +e.target.value; $("#ratev", wrap).textContent = e.target.value; IELTS.saveSettings(); };
     Speech.init().then(v => {
       const en = v.filter(x => /^en/i.test(x.lang));
-      $("#voiceinfo", wrap).textContent = en.length ? `${en.length} English voice${en.length > 1 ? "s" : ""} available (${en.filter(x => Speech.classify(x) === "female").length} female, ${en.filter(x => Speech.classify(x) === "male").length} male).` : "No speech voices found in this browser. Use the 'Read with Claude' option inside a test, or try Chrome or Edge.";
+      const acc = Speech.accentsAvailable().map(a => Speech.ACCENT_NAME[a]);
+      $("#voiceinfo", wrap).textContent = en.length ? `${en.length} English voice${en.length > 1 ? "s" : ""} available (${en.filter(x => Speech.classify(x) === "female").length} female, ${en.filter(x => Speech.classify(x) === "male").length} male). Accents: ${acc.join(", ") || "English"}. Speakers in a part are given different accents, as in the real recordings.` : "No speech voices found in this browser. Use the 'Read with Claude' option inside a test, or try Chrome or Edge.";
     });
-    $("#voicetest", wrap).onclick = async () => { await Speech.init(); const a = Speech.assign({ W: { gender: "female" }, M: { gender: "male" } }); await Speech.speak("Hello, this is the first speaker. My name is S-M-I-T-H.", a.W); await Speech.speak("And this is the second speaker. My number is 0-7-7-0-0, 9-0-0, 1-2-3.", a.M); };
+    $("#voicetest", wrap).onclick = async () => { await Speech.init(); const sp = { W: { name: "Speaker 1", gender: "female" }, M: { name: "Speaker 2", gender: "male" }, X: { name: "Speaker 3", gender: "female" } }; const a = Speech.assign(sp); $("#voiceinfo", wrap).textContent = "Voices for this test: " + Speech.describe(a, sp); await Speech.speak("Hello, this is the first speaker. My name is S-M-I-T-H.", a.W); await Speech.speak("And this is the second speaker. My number is 0-7-7-0-0, 9-0-0, 1-2-3.", a.M); await Speech.speak("And I am the third speaker. The meeting is at 9.30 on Tuesday.", a.X); };
     const done = IELTS.getAttempts("listening");
     tests().forEach(t => {
       const prev = done.filter(a => a.testId === t.id && a.scope === "full"); const last = prev[prev.length - 1];
@@ -139,7 +159,7 @@
     app.className = "exam listening";
     const tel = timerElement(); tel.textContent = "Listening";
     const helpBtn = el(`<button class="tbtn">Help</button>`); const finishBtn = el(`<button class="tbtn">Finish</button>`);
-    app.appendChild(topbar({ title: t.title + (single ? " · Part " + cur.number : ""), timerEl: tel, buttons: [helpBtn, finishBtn] }));
+    app.appendChild(topbar({ title: t.title + (single ? " · Part " + cur.number : ""), timerEl: tel, buttons: [IELTS.displayButton(), helpBtn, finishBtn] }));
     const player = el(`<div class="player"><span class="audio-icon"></span><span class="status">Preparing…</span><label>Volume <input type="range" class="vol" min="0" max="1" step="0.05" value="1"></label>${single ? '<button class="btn small" id="pause">Pause</button><button class="btn small" id="replay">Replay part</button>' : ""}<button class="btn small" id="claude">Read with Claude instead</button></div>`);
     app.appendChild(player);
     const body = el(`<div class="body"><div class="qpane"></div></div>`); app.appendChild(body);
@@ -201,8 +221,8 @@
     };
 
     async function playPart(pt) {
-      const voices = Speech.assign(pt.speakers);
-      status.textContent = `Part ${pt.number}`;
+      const voices = Speech.assign(pt.speakers); let lastSpeaker = null;
+      status.textContent = `Part ${pt.number}`; status.title = Speech.describe(voices, pt.speakers);
       await say(`Part ${pt.number}. ${pt.intro}`, narrator);
       await pause(1500);
       for (const u of pt.script) {
@@ -211,7 +231,7 @@
         else if (u.cue === "continue") { await pause(1500); status.textContent = `Part ${pt.number} · Time to look at questions ${u.range[0]}–${u.range[1]}`; await say(`Before you hear the rest of the ${pt.speakers && Object.keys(pt.speakers).length > 1 ? "conversation" : "talk"}, you have some time to look at questions ${u.range[0]} to ${u.range[1]}.`, narrator); await pause(Math.round(LOOK * 0.75)); await say(`Now listen and answer questions ${u.range[0]} to ${u.range[1]}.`, narrator); status.textContent = `Part ${pt.number} · Playing`; }
         else if (u.pause) await pause(u.pause);
         else if (u.t) await say(u.t, voices[u.s] || narrator);
-        if (u.t) await pause(250);
+        if (u.t) await pause(/\?\s*$/.test(u.t) ? 550 : u.s !== lastSpeaker ? 420 : 300); if (u.t) lastSpeaker = u.s;
       }
       if (abort.signal.aborted || replayRequested) return;
       status.textContent = `End of Part ${pt.number} · Check your answers`;

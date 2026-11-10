@@ -167,7 +167,13 @@ Begin the test now.`;
         if (SR) {
           const startRec = () => { r = new SR(); r.lang = "en-GB"; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
             r.onresult = e => { interimText = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finals.push(t.trim()); else interimText += t; } lastActivity = Date.now(); interim.textContent = (finals.slice(-2).join(" ") + " " + interimText).trim().slice(-140) || "Listening…"; };
-            r.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") { interim.textContent = "Microphone blocked. Press Next when you have finished speaking."; r = null; } };
+            r.onerror = e => {
+              if (e.error === "not-allowed" || e.error === "service-not-allowed") { interim.textContent = "Microphone blocked: click the camera/mic icon in the address bar, allow it, then reload. Press Next when you have finished speaking."; r = null; }
+              else if (e.error === "network") { interim.textContent = "Speech recognition needs an internet connection (Chrome sends audio to Google). Check the connection, or press Next."; }
+              else if (e.error === "audio-capture") { interim.textContent = "No microphone found. Connect one and reload, or press Next."; r = null; }
+              else if (e.error === "aborted") { /* restarted by onend */ }
+              else if (e.error !== "no-speech") interim.textContent = "Recognition problem (" + e.error + "). Press Next when done.";
+            };
             r.onend = () => { if (!stopped && r) { try { r.start(); } catch (e) { } } };
             try { r.start(); } catch (e) { } };
           startRec();

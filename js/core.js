@@ -241,9 +241,12 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
   // ---------- Router ----------
   const routes = {};
   function route(name, fn) { routes[name] = fn; }
-  function go(name, params) { state.params = params || {}; location.hash = name; if (location.hash.replace("#", "") === name) render(); }
+  // Render exactly once per navigation: if the hash changes, the hashchange event renders; if it is already the current hash, render now.
+  function go(name, params) { state.params = params || {}; if (location.hash.replace("#", "") === name) render(); else location.hash = name; }
   const state = { params: {} };
+  let renderSeq = 0;
   function render() {
+    renderSeq++;
     const name = (location.hash || "#home").replace("#", "");
     let fn = routes[name] || routes.home;
     if (state.gate && name !== "signin" && state.gate(name)) fn = routes.signin;

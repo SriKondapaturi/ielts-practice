@@ -165,7 +165,9 @@
       <div class="start"><button class="btn primary" id="start">Start test</button><button class="btn" id="back">Back</button></div>
     </div></div>`);
     $("#snd", box).onclick = async () => { await Speech.init(); Speech.speak("This is a sound check. If you can hear this, you are ready to begin.", Speech.assign({}).__narrator); };
-    $("#start", box).onclick = () => go("listening-exam", p);
+    const draft = IELTS.loadDraft("listening", t.id, p.scope);
+    if (draft) { const n = Object.keys(draft.answers || {}).filter(k => draft.answers[k] !== "" && draft.answers[k] != null).length; const res = el(`<div class="opts" style="border-color:var(--accent)"><b>Unfinished attempt found</b> · ${n} answered · recording will continue from the start of Part ${draft.partNumber || 1} <button class="btn primary small" id="resume">Resume</button> <button class="btn small" id="discard">Start again</button></div>`); $(".start", box).before(res); $("#resume", res).onclick = () => go("listening-exam", Object.assign({}, p, { resume: 1 })); $("#discard", res).onclick = () => { IELTS.clearDraft(); res.remove(); }; }
+    $("#start", box).onclick = () => { IELTS.clearDraft(); go("listening-exam", p); };
     $("#back", box).onclick = () => go("listening");
     app.appendChild(box);
   });
@@ -178,6 +180,11 @@
     const allGroups = parts.flatMap(x => x.questionGroups);
     const qnums = allGroups.flatMap(g => { const [a, b] = g.range; const arr = []; for (let i = a; i <= b; i++) arr.push(i); return arr; });
     const answers = {}; const flags = new Set(); let cur = parts[0]; let curQ = qnums[0]; let finished = false; let volume = 1;
+    const draft = p.resume ? IELTS.loadDraft("listening", t.id, p.scope) : null;
+    if (draft) { Object.assign(answers, draft.answers || {}); (draft.flags || []).forEach(f => flags.add(f)); }
+    let startIdx = draft && draft.partNumber ? Math.max(0, parts.findIndex(x => x.number === draft.partNumber)) : 0;
+    let lastSave = 0;
+    function persist(force) { if (finished) return; const now = Date.now(); if (!force && now - lastSave < 4000) return; lastSave = now; IELTS.saveDraft({ module: "listening", testId: t.id, testTitle: t.title, scope: p.scope, answers, flags: [...flags], partNumber: cur.number }); }
     const realistic = settings.realisticPauses;
     const LOOK = realistic ? 20000 : 8000, CHECK_PART = realistic ? 20000 : 6000, FINAL = realistic ? 120 : 30;
 
@@ -194,7 +201,7 @@
     helpBtn.onclick = () => modal(`<h2>Help</h2><ul><li>The recording plays automatically and only once. Type your answers while you listen.</li><li>Use the numbers at the bottom to move between questions; all parts are available at any time, as in the real test.</li><li>At the end you have ${FINAL === 120 ? "2 minutes" : "30 seconds"} to check your answers before they are submitted.</li><li>If the voices stop unexpectedly, press "Read with Claude instead" to copy the script for Claude voice mode.</li></ul>`);
 
     const ctx = {
-      answers, onChange: (n, v) => { answers[n] = v; paintNav(); },
+      answers, onChange: (n, v) => { answers[n] = v; paintNav(); persist(); },
       onFocus: n => { if (qnums.includes(n)) { curQ = n; paintNav(); } }
     };
     function showPart(pt) {
@@ -223,7 +230,7 @@
     }
     $("#prev", nav).onclick = () => { const i = qnums.indexOf(curQ); if (i > 0) jumpTo(qnums[i - 1]); };
     $("#next", nav).onclick = () => { const i = qnums.indexOf(curQ); if (i < qnums.length - 1) jumpTo(qnums[i + 1]); };
-    $("#revflag", nav).onchange = e => { e.target.checked ? flags.add(curQ) : flags.delete(curQ); paintNav(); };
+    $("#revflag", nav).onchange = e => { e.target.checked ? flags.add(curQ) : flags.delete(curQ); paintNav(); persist(true); };
 
     // ----- playback -----
     await Speech.init();
@@ -271,9 +278,9 @@
     async function run() {
       if (!hasVoices) { status.textContent = "No speech voices available in this browser."; await modal(`<h2>No voices available</h2><p>Your browser has no English text-to-speech voices. Use <b>Read with Claude instead</b> to copy the script for Claude voice mode, or open this page in Chrome or Edge.</p>`); return; }
       status.textContent = "Starting…";
-      if (!single) { await say("You will hear a number of different recordings and you will have to answer questions on what you hear. There will be time for you to read the instructions and questions, and you will have a chance to check your answers. The recording will be played once only. The test is in four parts. Now turn to Part 1.", narrator); await pause(1200); }
-      for (let i = 0; i < parts.length; i++) {
-        const pt = parts[i]; showPart(pt); curQ = pt.questionGroups[0].range[0]; paintNav();
+      if (!single && !draft) { await say("You will hear a number of different recordings and you will have to answer questions on what you hear. There will be time for you to read the instructions and questions, and you will have a chance to check your answers. The recording will be played once only. The test is in four parts. Now turn to Part 1.", narrator); await pause(1200); }
+      for (let i = startIdx; i < parts.length; i++) {
+        const pt = parts[i]; showPart(pt); curQ = pt.questionGroups[0].range[0]; paintNav(); persist(true);
         do { replayRequested = false; await playPart(pt); } while (replayRequested && !abort.signal.aborted);
         if (abort.signal.aborted) return;
         if (i < parts.length - 1) { await say(`Now turn to Part ${parts[i + 1].number}.`, narrator); await pause(800); }
@@ -291,11 +298,11 @@
       const ok = await modal(`<h2>Finish the test?</h2><p>${un ? `You have <b>${un}</b> unanswered question${un > 1 ? "s" : ""}.` : "All questions are answered."}</p><p class="muted">The recording will stop and your answers will be marked.</p>`, [{ label: "Keep working", value: false }, { label: "Submit answers", value: true, cls: "primary" }]);
       if (ok) finish(false);
     };
-    guardLeave(true);
+    guardLeave(true); state.examActive = "listening-exam";
     state.cleanup = () => { abort.abort(); Speech.stop(); Speech.onStall = null; guardLeave(false); if (state.cleanup2) state.cleanup2(); };
 
     async function finish(auto) {
-      if (finished) return; finished = true; abort.abort(); Speech.stop(); guardLeave(false); if (state.cleanup2) state.cleanup2();
+      if (finished) return; finished = true; abort.abort(); Speech.stop(); guardLeave(false); if (state.cleanup2) state.cleanup2(); IELTS.clearDraft(); state.examActive = null;
       const results = Questions.markAll(allGroups, answers);
       const raw = results.filter(r => r.correct).length;
       const band = single ? indicativeBand(raw, results.length, "listening") : bandFor(raw, "listening");
@@ -303,7 +310,7 @@
       await saveAttempt(attempt);
       go("listening-results", { id: attempt.id });
     }
-    showPart(parts[0]);
+    showPart(parts[startIdx]); if (draft) toast("Resumed: answers restored, recording continues from the start of this part.");
   });
 
   function scriptForClaude(t, parts) {

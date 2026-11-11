@@ -247,6 +247,13 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
   applyDisplay();
   function updateTimerEl(tel, r) { tel.textContent = fmtTime(r) + " left"; tel.classList.toggle("warn", r <= 600 && r > 300); tel.classList.toggle("crit", r <= 300); }
 
+  // ---------- Drafts: a running test is saved locally so a refresh, Back or a dropped tab can resume it ----------
+  const DRAFT_KEY = "ielts_draft";
+  function saveDraft(d) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(Object.assign({ savedAt: Date.now() }, d))); } catch (e) { } }
+  function loadDraft(module, testId, scope) { try { const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); if (!d || Date.now() - d.savedAt > 24 * 3600 * 1000) return null; if (module && (d.module !== module || d.testId !== testId || (scope && d.scope !== scope))) return null; return d; } catch (e) { return null; } }
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { } }
+  const draftSummary = d => d ? `${d.module[0].toUpperCase() + d.module.slice(1)} ${d.testTitle || d.testId}${d.scope && d.scope !== "full" ? " · " + d.scope.replace("P", "Part ").replace("T", "Task ") : ""}` : "";
+
   // ---------- Router ----------
   const routes = {};
   function route(name, fn) { routes[name] = fn; }
@@ -254,13 +261,24 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
   function go(name, params) { state.params = params || {}; if (location.hash.replace("#", "") === name) render(); else location.hash = name; }
   const state = { params: {} };
   let renderSeq = 0;
+  let lastHash = location.hash;
   function render() {
     renderSeq++;
     const name = (location.hash || "#home").replace("#", "");
+    if (state.examActive && !state.examLeaveOk && name !== state.examActive) {
+      // Browser Back, a bookmark or a typed URL while a test runs: ask first, restore the exam hash if declined
+      const target = location.hash; const here = "#" + state.examActive;
+      history.replaceState(null, "", here);
+      modal(`<h2>Leave this test?</h2><p>The clock keeps running and your answers are saved, so you can come back and resume from the instructions screen. Leave now?</p>`, [{ label: "Stay", value: false }, { label: "Leave", value: true, cls: "primary" }]).then(ok => { if (ok) { state.examLeaveOk = true; location.hash = target; } });
+      return;
+    }
+    state.examLeaveOk = false;
+    lastHash = location.hash;
     let fn = routes[name] || routes.home;
     if (state.gate && name !== "signin" && state.gate(name)) fn = routes.signin;
     window.speechSynthesis && window.speechSynthesis.cancel();
     if (state.cleanup) { try { state.cleanup(); } catch (e) { } state.cleanup = null; }
+    state.examActive = null;
     const app = $("#app"); app.innerHTML = ""; app.className = "";
     $("#modal-root").innerHTML = "";
     window.scrollTo(0, 0);
@@ -272,5 +290,5 @@ const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) ? window.
   // leave-guard
   function guardLeave(active) { window.onbeforeunload = active ? (e => { e.preventDefault(); e.returnValue = ""; }) : null; }
 
-  return { EXAM_DATE, TARGETS, DEFAULT_TARGETS, targetsText, overallTarget, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, displayButton, applyDisplay, diffTag, route, go, render, state, guardLeave };
+  return { EXAM_DATE, TARGETS, DEFAULT_TARGETS, targetsText, overallTarget, CANDIDATE, auth, backendMode, get syncState() { return syncState; }, get userId() { return userId; }, $, $$, esc, el, toast, modal, copyText, fmtTime, fmtDate, uid, roman, wordCount, settings, saveSettings, saveAttempt, deleteAttempt, getAttempts, dbReady, getSample, bandFor, indicativeBand, norm, isCorrect, Timer, showTimeWarning, beep, topbar, timerElement, updateTimerEl, displayButton, applyDisplay, diffTag, route, go, render, state, guardLeave, saveDraft, loadDraft, clearDraft, draftSummary };
 })();

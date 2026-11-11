@@ -58,7 +58,9 @@
       </ul>
       <div class="start"><button class="btn primary" id="start">Start test</button><button class="btn" id="back">Back</button></div>
     </div></div>`);
-    $("#start", box).onclick = () => go("reading-exam", p);
+    const draft = IELTS.loadDraft("reading", t.id, p.scope);
+    if (draft) { const n = Object.keys(draft.answers || {}).filter(k => draft.answers[k] !== "" && draft.answers[k] != null).length; const res = el(`<div class="opts" style="border-color:var(--accent)"><b>Unfinished attempt found</b> · ${n} answered · ${IELTS.fmtTime(Math.max(0, Math.round(draft.remaining)))} left on the clock <button class="btn primary small" id="resume">Resume</button> <button class="btn small" id="discard">Start again</button></div>`); $(".start", box).before(res); $("#resume", res).onclick = () => go("reading-exam", Object.assign({}, p, { resume: 1 })); $("#discard", res).onclick = () => { IELTS.clearDraft(); res.remove(); }; }
+    $("#start", box).onclick = () => { IELTS.clearDraft(); go("reading-exam", p); };
     $("#back", box).onclick = () => go("reading");
     app.appendChild(box);
   });
@@ -70,6 +72,8 @@
     const passages = single ? t.passages.filter(x => "P" + x.number === p.scope) : t.passages;
     const seconds = single ? 20 * 60 : 60 * 60;
     const answers = {}; const flags = new Set(); let cur = passages[0]; let curQ = passages[0].questionGroups[0].range[0];
+    const draft = p.resume ? IELTS.loadDraft("reading", t.id, p.scope) : null;
+    if (draft) { Object.assign(answers, draft.answers || {}); (draft.flags || []).forEach(f => flags.add(f)); }
     const allGroups = passages.flatMap(x => x.questionGroups);
     const qnums = allGroups.flatMap(g => { const [a, b] = g.range; const arr = []; for (let i = a; i <= b; i++) arr.push(i); return arr; });
     let finished = false;
@@ -101,7 +105,9 @@
     window.addEventListener("mouseup", () => { dragging = false; document.body.style.userSelect = ""; });
 
     // passage render with highlighting
-    const highlights = {}; // passage number -> innerHTML (to persist highlights across part switches)
+    const highlights = draft && draft.highlights ? draft.highlights : {}; // passage number -> innerHTML (to persist highlights across part switches)
+    let lastSave = 0;
+    function persist(force) { if (finished) return; const now = Date.now(); if (!force && now - lastSave < 4000) return; lastSave = now; IELTS.saveDraft({ module: "reading", testId: t.id, testTitle: t.title, scope: p.scope, answers, flags: [...flags], highlights, remaining: timer ? timer.remaining : seconds, cur: cur.number }); }
     function renderPassage(ps) {
       const pass = $(".passage", left);
       if (highlights[ps.number]) { pass.innerHTML = highlights[ps.number]; return; }
@@ -128,7 +134,7 @@
             if (a === "note") { removeMenu(); note = await promptNote(); if (note == null) { sel.removeAllRanges(); return; } }
             wrapRange(range, a === "note" ? "note" : "", note);
           }
-          sel.removeAllRanges(); removeMenu(); highlights[cur.number] = $(".passage", left).innerHTML;
+          sel.removeAllRanges(); removeMenu(); highlights[cur.number] = $(".passage", left).innerHTML; persist(true);
         };
       }, 10);
     });
@@ -167,7 +173,7 @@
     // questions
     const ctx = {
       answers, review: false,
-      onChange: (n, v) => { if (typeof n === "string") { answers[n] = v; } else answers[n] = v; paintNav(); },
+      onChange: (n, v) => { if (typeof n === "string") { answers[n] = v; } else answers[n] = v; paintNav(); persist(); },
       onFocus: (n) => { if (qnums.includes(n)) { curQ = n; paintNav(); $("#revflag", nav).checked = flags.has(n); } }
     };
     function renderQuestions(ps) {
@@ -217,15 +223,16 @@
     $("#prev", nav).onclick = () => { const i = qnums.indexOf(curQ); if (i > 0) jumpTo(qnums[i - 1], passages.find(ps => inPassage(ps, qnums[i - 1]))); };
     $("#next", nav).onclick = () => { const i = qnums.indexOf(curQ); if (i < qnums.length - 1) jumpTo(qnums[i + 1], passages.find(ps => inPassage(ps, qnums[i + 1]))); };
     const inPassage = (ps, n) => ps.questionGroups.some(g => n >= g.range[0] && n <= g.range[1]);
-    $("#revflag", nav).onchange = (e) => { e.target.checked ? flags.add(curQ) : flags.delete(curQ); paintNav(); };
+    $("#revflag", nav).onchange = (e) => { e.target.checked ? flags.add(curQ) : flags.delete(curQ); paintNav(); persist(true); };
 
     // timer
     const timer = new Timer(seconds, {
-      onTick: r => updateTimerEl(tel, r),
+      onTick: r => { updateTimerEl(tel, r); if (r % 5 === 0) persist(true); },
       onWarn: w => showTimeWarning(w),
       onEnd: () => { toast("Time is up. Your answers have been submitted."); finish(true); }
     });
-    timer.start(); guardLeave(true);
+    if (draft && draft.remaining != null) timer.remaining = Math.max(5, draft.remaining);
+    timer.start(); guardLeave(true); state.examActive = "reading-exam"; persist(true);
     state.cleanup = () => { timer.pause(); guardLeave(false); removeMenu(); };
 
     finishBtn.onclick = async () => {
@@ -235,7 +242,7 @@
     };
 
     async function finish(auto) {
-      if (finished) return; finished = true; timer.pause(); guardLeave(false);
+      if (finished) return; finished = true; timer.pause(); guardLeave(false); IELTS.clearDraft(); state.examActive = null;
       const results = Questions.markAll(allGroups, answers);
       const raw = results.filter(r => r.correct).length;
       const band = single ? indicativeBand(raw, results.length, "reading") : bandFor(raw, "reading");
@@ -245,7 +252,8 @@
       state.lastReading = { attempt, test: t, passages, answers, highlights };
       go("reading-results", { id: attempt.id });
     }
-    showPassage(passages[0]);
+    showPassage(draft && draft.cur ? passages.find(x => x.number === draft.cur) || passages[0] : passages[0]);
+    if (draft) toast("Resumed where you left off.");
   });
 
   // ---------- results ----------

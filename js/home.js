@@ -120,7 +120,9 @@
     const gaps = MODS.map(([m, n]) => { const b = latest(m); return b ? [n, tgt(m) - b] : null; }).filter(Boolean);
     const foot = gaps.length ? (gaps.every(g => g[1] <= 0) ? "Every module is at or above its target. Hold it there with one full test a week." : `Furthest from target: ${gaps.sort((x, y) => y[1] - x[1])[0][0]}, ${gaps[0][1].toFixed(1)} band${gaps[0][1] === 1 ? "" : "s"} to go.`) : "Take one test in each module this week to place your markers on the line.";
     const recent = all.slice(-6).reverse();
+    const draft = IELTS.loadDraft();
     const wrap = el(`<div class="home">
+      ${draft ? `<div class="card resume"><div><b>Unfinished test</b><div class="muted">${esc(IELTS.draftSummary(draft))} · saved ${IELTS.fmtDate(draft.savedAt)}</div></div><div class="row"><button class="btn primary" id="resume-draft">Resume</button><button class="btn" id="drop-draft">Discard</button></div></div>` : ""}
       <div class="greet"><div><h1>${greet}${first ? ", " + esc(first) : ""}.</h1><div class="date">${today.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} · ${days > 0 ? `${days} days to the exam on 29 December` : "Exam day"}</div></div><div class="sync">${syncLabel()}</div></div>
       <div class="bandline"><div class="head"><h2>Where you stand</h2><div class="legend"><a href="#targets" style="color:var(--bl-ink-3)">Targets: ${IELTS.targetsText().replace(/[a-z]+ /gi, m => m[0] + " ")}</a><span><i style="background:var(--bl-teal)"></i>Latest band</span><span><i style="background:var(--bl-saffron);border-radius:2px;width:4px"></i>Target</span></div></div>
         <div class="scale"><div class="axis">${ticks}</div>${lanes}</div><div class="foot">${foot}</div></div>
@@ -133,6 +135,7 @@
       <div class="modules">${MODS.map(([m, n, d]) => `<div class="module"><h2>${n}<span class="band">${latest(m) ? `<b>${latest(m)}</b> · target ${tgt(m)}` : "target " + tgt(m)}</span></h2><div class="desc">${d}</div><div class="actions"><button class="btn primary" data-go="${m}" data-full="1">${m === "speaking" ? "Examiner sets" : "Full timed test"}</button><button class="btn" data-go="${m}">${m === "speaking" ? "Random set" : m === "writing" ? "Single task or drills" : "Practise one part"}</button></div></div>`).join("")}</div>
       ${recent.length ? `<div class="section"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Recent attempts</h2><a class="btn small" href="#progress">All progress</a></div><table class="rtable recent" style="margin-top:12px"><tr><th>When</th><th>Test</th><th>Result</th></tr>${recent.map(a => `<tr><td>${IELTS.fmtDate(a.date)}</td><td>${esc(a.testTitle || a.module)}${a.scope && a.scope !== "full" ? ` <span class="muted">(${esc(a.scope)})</span>` : ""}</td><td>${a.band ? `<span class="band-pill">${a.band}</span>` : "<span class='muted'>unmarked</span>"}${a.raw != null ? ` <span class="muted">${a.raw}/40</span>` : ""}</td></tr>`).join("")}</table></div>` : ""}
     </div>`);
+    if (draft) { $("#resume-draft", wrap).onclick = () => go(draft.module + "-instr", { testId: draft.testId, scope: draft.scope }); $("#drop-draft", wrap).onclick = () => { IELTS.clearDraft(); IELTS.render(); }; }
     $$("[data-go]", wrap).forEach(b => b.onclick = () => {
       const m = b.dataset.go;
       if (m === "speaking") return b.dataset.full ? go("speaking") : go("speaking-live-instr", { id: (window.SPEAKING_SETS || [])[Math.floor(Math.random() * (window.SPEAKING_SETS || []).length)].id });

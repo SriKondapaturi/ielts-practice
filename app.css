@@ -252,15 +252,19 @@ p { margin: 0 0 10px; }
   .writing .body { flex-direction: column; }
   .writing .task { border-right: none; border-bottom: 1px solid var(--line); max-height: 45vh; }
   .writing textarea { min-height: 220px; }
-  .topbar { gap: 8px; padding: 0 10px; }
+  .exam { overflow-x: hidden; }
+  .topbar { gap: 6px; padding: 6px 10px; height: auto; min-height: 48px; flex-wrap: wrap; row-gap: 4px; }
   .topbar .candidate { display: none; }
-  .topbar .timer { min-width: 110px; font-size: 13px; }
+  .topbar .brand { font-size: 14px; }
+  .topbar .timer { min-width: 92px; font-size: 13px; padding: 5px 8px; }
+  .topbar .tbtn { padding: 7px 9px; font-size: 12.5px; min-height: 34px; }
   .navbar { padding: 6px 8px; gap: 6px; }
   .navbar .parts { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin; }
   .navbar .ptab { flex-shrink: 0; }
   .navbar .ptab .nums { display: none; }
   .navbar .ptab.open .nums { display: flex; flex-wrap: nowrap; }
-  .navbar .num { width: 30px; height: 30px; }
+  .navbar .num { width: 34px; height: 34px; font-size: 13px; }
+  .navbar .arrows .btn, .mobile-switch button { min-height: 34px; }
   .review-toggle { font-size: 0; }
   .review-toggle::after { content: "Flag"; font-size: 12px; }
   .topbar .muted { display: none; }
@@ -270,6 +274,7 @@ p { margin: 0 0 10px; }
   .home .hero { flex-direction: column; align-items: flex-start; }
   .countdown { text-align: left; }
   .listening .player { padding: 6px 10px; font-size: 13px; }
+  .listening .player .btn.small, .exam .btn.small { min-height: 32px; }
 }
 @media print { .topbar, .navbar { display: none; } }
 

@@ -27,7 +27,7 @@ async def main():
             for i in range(n_tests):
                 tid = await page.evaluate(f"window.READING_TESTS[{i}].id")
                 await page.goto(base + "#reading"); await page.wait_for_timeout(200)
-                await page.evaluate(f"IELTS.go('reading-instr', {{testId:'{tid}', scope:'full'}})"); await page.wait_for_timeout(200)
+                await page.evaluate(f"IELTS.state.examLeaveOk=true; IELTS.go('reading-instr', {{testId:'{tid}', scope:'full'}})"); await page.wait_for_timeout(200)
                 await page.click("#start"); await page.wait_for_timeout(400)
                 if i == 0:
                     await page.screenshot(path=f"{SHOTS}/02-reading-exam.png")
@@ -69,7 +69,7 @@ async def main():
                     await page.screenshot(path=f"{SHOTS}/04-reading-review.png")
 
             # wrong-answer marking sanity: run R1 passage 1 with deliberately wrong + variant answers
-            await page.evaluate("IELTS.go('reading-instr', {testId:'R1', scope:'P1'})"); await page.wait_for_timeout(200)
+            await page.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('reading-instr', {testId:'R1', scope:'P1'})"); await page.wait_for_timeout(200)
             await page.click("#start"); await page.wait_for_timeout(300)
             await page.evaluate("""() => {
               const set=(n,v)=>{const i=document.querySelector(`input[type=text][data-q="${n}"]`); i.value=v; i.dispatchEvent(new Event('input'));};
@@ -81,7 +81,7 @@ async def main():
             print("P1 marking sample:", rows[:13])
 
             # ---------- TIMER: warnings + auto submit ----------
-            await page.evaluate("IELTS.go('reading-instr', {testId:'R1', scope:'P1'})"); await page.wait_for_timeout(200)
+            await page.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('reading-instr', {testId:'R1', scope:'P1'})"); await page.wait_for_timeout(200)
             await page.click("#start"); await page.wait_for_timeout(300)
             # shrink timer: find Timer instance via a hack: speed by setting remaining through onTick closure not accessible -> use prototype patch
             await page.evaluate("""() => { const T = IELTS.Timer.prototype; const orig = T._tick; T._tick = function(){ this.remaining = Math.min(this.remaining, 601); if (this._fast) this.remaining -= 60; this._fast = true; orig.call(this); }; }""")
@@ -100,7 +100,7 @@ async def main():
             await page.screenshot(path=f"{SHOTS}/06-writing-menu.png", full_page=True)
             for i in range(await page.evaluate("window.WRITING_TESTS.length")):
                 tid = f"W{i+1}"
-                await page.evaluate(f"IELTS.go('writing-instr', {{testId:'{tid}', scope:'full'}})"); await page.wait_for_timeout(200)
+                await page.evaluate(f"IELTS.state.examLeaveOk=true; IELTS.go('writing-instr', {{testId:'{tid}', scope:'full'}})"); await page.wait_for_timeout(200)
                 await page.click("#start"); await page.wait_for_timeout(400)
                 await page.screenshot(path=f"{SHOTS}/07-writing-{tid}-task1.png")
             await page.fill("textarea", "The graph shows " + "word " * 160)
@@ -111,9 +111,9 @@ async def main():
             await page.screenshot(path=f"{SHOTS}/08-writing-mark.png", full_page=True)
             print("marking area:", (await page.locator("#markarea").inner_text())[:200])
             # drill
-            await page.evaluate("IELTS.go('writing-drill', {kind:'intro'})"); await page.wait_for_timeout(300)
+            await page.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('writing-drill', {kind:'intro'})"); await page.wait_for_timeout(300)
             await page.screenshot(path=f"{SHOTS}/09-drill-intro.png")
-            await page.evaluate("IELTS.go('writing-drill', {kind:'overview'})"); await page.wait_for_timeout(300)
+            await page.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('writing-drill', {kind:'overview'})"); await page.wait_for_timeout(300)
             await page.screenshot(path=f"{SHOTS}/10-drill-overview.png")
 
             # ---------- LISTENING (no voices in headless: check fallback + marking) ----------
@@ -121,7 +121,7 @@ async def main():
             await page.screenshot(path=f"{SHOTS}/11-listening-menu.png", full_page=True)
             for i in range(await page.evaluate("window.LISTENING_TESTS.length")):
                 tid = f"L{i+1}"
-                await page.evaluate(f"IELTS.go('listening-instr', {{testId:'{tid}', scope:'full'}})"); await page.wait_for_timeout(200)
+                await page.evaluate(f"IELTS.state.examLeaveOk=true; IELTS.go('listening-instr', {{testId:'{tid}', scope:'full'}})"); await page.wait_for_timeout(200)
                 await page.click("#start"); await page.wait_for_timeout(3200)
                 # dismiss no-voices modal if present
                 if await page.locator(".modal-bg").count(): await page.click(".modal .btn")
@@ -155,7 +155,7 @@ async def main():
             # ---------- SPEAKING ----------
             await page.goto(base + "#speaking"); await page.wait_for_timeout(300)
             await page.screenshot(path=f"{SHOTS}/14-speaking-menu.png", full_page=True)
-            await page.evaluate("IELTS.go('speaking-set', {id:'S1'})"); await page.wait_for_timeout(300)
+            await page.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('speaking-set', {id:'S1'})"); await page.wait_for_timeout(300)
             await page.click("#go"); await page.click("#go"); await page.wait_for_timeout(200)
             await page.click("#prep"); await page.wait_for_timeout(1500)
             print("prep timer:", await page.locator("#t").inner_text())
@@ -170,7 +170,7 @@ async def main():
 
             # ---------- NEW: drag and drop, display settings ----------
             await page.goto(base + "#reading"); await page.wait_for_timeout(200)
-            await page.evaluate("IELTS.go('reading-instr', {testId:'R1', scope:'full'})"); await page.wait_for_timeout(200)
+            await page.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('reading-instr', {testId:'R1', scope:'full'})"); await page.wait_for_timeout(200)
             await page.click("#start"); await page.wait_for_timeout(400)
             dd = await page.evaluate("""() => {
               // find a passage with a drag group
@@ -203,7 +203,7 @@ async def main():
               window.speechSynthesis.getVoices = () => [];
             """)
             await page.goto(base + "#speaking"); await page.wait_for_timeout(300)
-            await page.evaluate("IELTS.go('speaking-live-instr', {id:'S1'})"); await page.wait_for_timeout(200)
+            await page.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('speaking-live-instr', {id:'S1'})"); await page.wait_for_timeout(200)
             await page.screenshot(path=f"{SHOTS}/22-speaking-live-instr.png", full_page=True)
             await page.click("#start"); await page.wait_for_timeout(1500)
             # drive it: press Next repeatedly until results
@@ -232,11 +232,11 @@ async def main():
             await m.add_init_script("sessionStorage.setItem('ielts_skip_signin','1')")
             m.on("pageerror", lambda e: errors.append("MOBILE PAGEERROR: " + str(e)))
             await m.goto(base); await m.wait_for_timeout(300); await m.screenshot(path=f"{SHOTS}/17-mobile-home.png", full_page=True)
-            await m.evaluate("IELTS.go('reading-instr', {testId:'R1', scope:'full'})"); await m.wait_for_timeout(200); await m.click("#start"); await m.wait_for_timeout(300)
+            await m.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('reading-instr', {testId:'R1', scope:'full'})"); await m.wait_for_timeout(200); await m.click("#start"); await m.wait_for_timeout(300)
             await m.screenshot(path=f"{SHOTS}/18-mobile-reading-q.png")
             await m.click(".mobile-switch button[data-m=passage]"); await m.wait_for_timeout(200)
             await m.screenshot(path=f"{SHOTS}/19-mobile-reading-passage.png")
-            await m.evaluate("IELTS.go('writing-instr', {testId:'W3', scope:'full'})"); await m.wait_for_timeout(200); await m.click("#start"); await m.wait_for_timeout(300)
+            await m.evaluate("IELTS.state.examLeaveOk=true; IELTS.go('writing-instr', {testId:'W3', scope:'full'})"); await m.wait_for_timeout(200); await m.click("#start"); await m.wait_for_timeout(300)
             await m.screenshot(path=f"{SHOTS}/20-mobile-writing.png")
             await browser.close()
     finally:

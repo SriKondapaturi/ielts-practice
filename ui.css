@@ -192,6 +192,10 @@
   .shell .mobilehead .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--bl-ink); font-family: var(--bl-display); font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
   .shell .mobilehead .brand .mark { width: 28px; height: 28px; }
   .shell .mobilehead .right { display: flex; gap: 6px; }
+  .shell .mobilehead .btn.small { padding: 8px 12px; min-height: 36px; }
+  .shell table.rtable { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .shell table.rtable td, .shell table.rtable th { white-space: nowrap; }
+  .shell .recent td:nth-child(2), .shell #errlog td:nth-child(4), .shell #errlog td:nth-child(5), .shell #errlog td:nth-child(6), .shell #errlog td:nth-child(7) { white-space: normal; min-width: 140px; }
 }
 @media (min-width: 901px) { .shell .mobilehead { display: none; } }
 @media (max-width: 520px) { .shell .modules { grid-template-columns: 1fr; } }
@@ -224,7 +228,7 @@
 .auth .status { min-height: 20px; font-size: 13.5px; margin-top: 10px; }
 .auth .status.bad { color: #B42318; } .auth .status.ok { color: #1A7F37; }
 .auth .guest { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--bl-hair); font-size: 13px; color: var(--bl-ink-3); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.auth .guest button { background: none; border: 0; color: var(--bl-teal); font-family: inherit; font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline; }
+.auth .guest button { background: none; border: 0; color: var(--bl-teal); font-family: inherit; font-size: 13px; cursor: pointer; padding: 8px 0; min-height: 32px; text-decoration: underline; }
 @media (max-width: 860px) {
   #app.auth { grid-template-columns: 1fr; }
   .auth .panel { padding: 28px 24px 24px; min-height: 0; }
@@ -248,3 +252,6 @@
 .shell .targets .sliders input[type=range] { accent-color: var(--bl-teal); }
 .shell .targets .sliders b { font-family: var(--bl-display); font-size: 18px; font-weight: 600; text-align: right; }
 @media (max-width: 700px) { .shell .targets .sliders { grid-template-columns: 1fr; } }
+
+/* unfinished test notice */
+.shell .card.resume { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; border-color: var(--bl-teal); background: var(--bl-teal-soft); margin-bottom: 16px; }

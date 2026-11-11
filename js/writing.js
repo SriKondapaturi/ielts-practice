@@ -56,7 +56,9 @@
       <h3>INFORMATION FOR CANDIDATES</h3>
       <ul>${p.scope === "full" ? "<li>Task 2 contributes twice as much as Task 1 to the Writing score.</li><li>You can move between the tasks at any time; the clock does not stop.</li>" : ""}<li>Your writing is locked when the time ends and is then marked against the four assessment criteria.</li><li>There is no spell-checker, as in the real test.</li></ul>
       <div class="start"><button class="btn primary" id="start">Start test</button><button class="btn" id="back">Back</button></div></div></div>`);
-    $("#start", box).onclick = () => go("writing-exam", p); $("#back", box).onclick = () => go("writing");
+    const draft = IELTS.loadDraft("writing", t.id, p.scope);
+    if (draft) { const n = Object.values(draft.texts || {}).reduce((s, x) => s + wordCount(x || ""), 0); const res = el(`<div class="opts" style="border-color:var(--accent)"><b>Unfinished attempt found</b> · ${n} words written · ${IELTS.fmtTime(Math.max(0, Math.round(draft.remaining)))} left on the clock <button class="btn primary small" id="resume">Resume</button> <button class="btn small" id="discard">Start again</button></div>`); $(".start", box).before(res); $("#resume", res).onclick = () => go("writing-exam", Object.assign({}, p, { resume: 1 })); $("#discard", res).onclick = () => { IELTS.clearDraft(); res.remove(); }; }
+    $("#start", box).onclick = () => { IELTS.clearDraft(); go("writing-exam", p); }; $("#back", box).onclick = () => go("writing");
     app.appendChild(box);
   });
 
@@ -65,7 +67,10 @@
     const t = tests().find(x => x.id === p.testId); if (!t) return go("writing");
     const scope = p.scope; const seconds = (scope === "T1" ? 20 : scope === "T2" ? 40 : 60) * 60;
     const taskKeys = scope === "T1" ? ["task1"] : scope === "T2" ? ["task2"] : ["task1", "task2"];
-    const texts = { task1: "", task2: "" }; let curKey = taskKeys[0]; let finished = false;
+    const draft = p.resume ? IELTS.loadDraft("writing", t.id, scope) : null;
+    const texts = Object.assign({ task1: "", task2: "" }, draft ? draft.texts : {}); let curKey = (draft && draft.cur) || taskKeys[0]; let finished = false;
+    let lastSave = 0; let timer = null; let inited = false;
+    function persist(force) { if (finished) return; const now = Date.now(); if (!force && now - lastSave < 4000) return; lastSave = now; if (inited) texts[curKey] = ta.value; IELTS.saveDraft({ module: "writing", testId: t.id, testTitle: t.title, scope, texts, cur: curKey, remaining: timer ? timer.remaining : seconds }); }
     app.className = "exam writing";
     const tel = timerElement(); const finishBtn = el(`<button class="tbtn">Finish</button>`); const hideBtn = el(`<button class="tbtn">Hide</button>`);
     app.appendChild(topbar({ title: t.title, timerEl: tel, buttons: [IELTS.displayButton(), hideBtn, finishBtn] }));
@@ -76,7 +81,7 @@
     app.appendChild(body);
     const ta = $("textarea", body), wc = $(".wc", body);
     function showTask(k) {
-      texts[curKey] = ta.value; curKey = k; ta.value = texts[k];
+      if (inited) texts[curKey] = ta.value; inited = true; curKey = k; ta.value = texts[k];
       $$(".wtabs button", partbar).forEach(b => b.classList.toggle("active", b.dataset.k === k));
       const task = t[k];
       $(".pb-text", partbar).textContent = k === "task1" ? "You should spend about 20 minutes on this task. Write at least 150 words." : "You should spend about 40 minutes on this task. Write at least 250 words.";
@@ -85,10 +90,11 @@
       updateWc();
     }
     function updateWc() { const n = wordCount(ta.value); wc.textContent = `Words: ${n}`; wc.style.color = n >= (curKey === "task1" ? 150 : 250) ? "var(--ok)" : ""; }
-    ta.addEventListener("input", updateWc);
-    $$(".wtabs button", partbar).forEach(b => b.onclick = () => showTask(b.dataset.k));
-    const timer = new Timer(seconds, { onTick: r => updateTimerEl(tel, r), onWarn: w => showTimeWarning(w), onEnd: () => { ta.disabled = true; toast("Time is up. Your writing has been locked and sent for marking."); finish(true); } });
-    timer.start(); guardLeave(true); state.cleanup = () => { timer.pause(); guardLeave(false); };
+    ta.addEventListener("input", () => { updateWc(); persist(); });
+    $$(".wtabs button", partbar).forEach(b => b.onclick = () => { showTask(b.dataset.k); persist(true); });
+    timer = new Timer(seconds, { onTick: r => { updateTimerEl(tel, r); if (r % 5 === 0) persist(true); }, onWarn: w => showTimeWarning(w), onEnd: () => { ta.disabled = true; toast("Time is up. Your writing has been locked and sent for marking."); finish(true); } });
+    if (draft && draft.remaining != null) timer.remaining = Math.max(5, draft.remaining);
+    timer.start(); guardLeave(true); state.examActive = "writing-exam"; state.cleanup = () => { timer.pause(); guardLeave(false); };
     finishBtn.onclick = async () => {
       texts[curKey] = ta.value;
       const short = taskKeys.filter(k => wordCount(texts[k]) < (k === "task1" ? 150 : 250));
@@ -96,12 +102,13 @@
       if (ok) finish(false);
     };
     async function finish(auto) {
-      if (finished) return; finished = true; timer.pause(); guardLeave(false); texts[curKey] = ta.value;
+      if (finished) return; finished = true; timer.pause(); guardLeave(false); texts[curKey] = ta.value; IELTS.clearDraft(); state.examActive = null;
       const attempt = { module: "writing", testId: t.id, testTitle: t.title, scope, texts: { ...texts }, timeUsed: Math.round(seconds - timer.remaining), auto: !!auto, band: null, criteria: null };
       await saveAttempt(attempt);
       go("writing-mark", { id: attempt.id });
     }
-    showTask(curKey);
+    showTask(curKey); persist(true);
+    if (draft) toast("Resumed where you left off.");
   });
 
   // ---------- drills ----------
